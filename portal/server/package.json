@@ -1,0 +1,22 @@
+{
+  "name": "battery-portal-server",
+  "version": "1.0.0",
+  "description": "鉛蓄電池内部抵抗監視システム ポータルサーバー (親機からのデータ集約・可視化・設定/OTA配信管理)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

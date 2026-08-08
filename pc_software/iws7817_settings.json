@@ -1,0 +1,36 @@
+{
+  "udp_port": 7817,
+  "cmd_port": 7818,
+  "devices": [
+    {
+      "device_id": "iws7817_02",
+      "ip": "10.3.113.8",
+      "i2c_addr": 3,
+      "cmd_port": 7818,
+      "udp_port": 7817,
+      "interval_ms": 2000,
+      "color": "#2196F3",
+      "visible": true
+    },
+    {
+      "device_id": "iws7817_03",
+      "ip": "10.3.113.25",
+      "i2c_addr": 3,
+      "cmd_port": 7818,
+      "udp_port": 7817,
+      "interval_ms": 2000,
+      "color": "#F44336",
+      "visible": true
+    },
+    {
+      "device_id": "iws7817_01",
+      "ip": "10.3.113.35",
+      "i2c_addr": 3,
+      "cmd_port": 7818,
+      "udp_port": 7817,
+      "interval_ms": 2000,
+      "color": "#4CAF50",
+      "visible": true
+    }
+  ]
+}
