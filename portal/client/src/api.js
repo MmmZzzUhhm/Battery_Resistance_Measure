@@ -37,4 +37,10 @@ export const api = {
     req(`/gateways/${encodeURIComponent(gatewayId)}/children/${encodeURIComponent(childId)}/firmware-target`, {
       method: 'DELETE',
     }),
+  cameras: () => req('/cameras'),
+  cameraCaptures: (cameraId, params) => {
+    const qs = new URLSearchParams(params).toString();
+    return req(`/cameras/${encodeURIComponent(cameraId)}/captures?${qs}`);
+  },
+  cameraCaptureImageUrl: (captureId) => `${BASE}/camera-captures/${encodeURIComponent(captureId)}/image`,
 };

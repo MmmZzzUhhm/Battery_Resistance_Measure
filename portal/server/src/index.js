@@ -8,6 +8,7 @@ const cors = require('cors');
 
 const deviceApi = require('./routes/deviceApi');
 const adminApi = require('./routes/adminApi');
+const cameraApi = require('./routes/cameraApi');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -17,6 +18,7 @@ app.use(express.json({ limit: '2mb' }));
 
 app.use('/api/v1', deviceApi);
 app.use('/api/v1', adminApi);
+app.use('/api/v1', cameraApi);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

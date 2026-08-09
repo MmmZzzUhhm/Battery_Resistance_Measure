@@ -4,13 +4,13 @@
 #include "rtc_clock.h"
 
 #ifndef PIN_SD_CLK
-#define PIN_SD_CLK 7
+#define PIN_SD_CLK 2
 #endif
 #ifndef PIN_SD_CMD
-#define PIN_SD_CMD 9
+#define PIN_SD_CMD 3
 #endif
 #ifndef PIN_SD_D0
-#define PIN_SD_D0  8
+#define PIN_SD_D0  1
 #endif
 
 namespace {

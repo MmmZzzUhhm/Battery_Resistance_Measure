@@ -98,12 +98,15 @@ void handlePostConfig() {
 } // namespace
 
 void provisioningBegin() {
+    // WiFi.mode()より前にWiFi.macAddress()を呼ぶとMACが0埋めで返るため、
+    // モード設定を先に行う。
+    WiFi.mode(WIFI_AP);
+
     uint8_t mac[6];
     WiFi.macAddress(mac);
     char ssid[32];
     snprintf(ssid, sizeof(ssid), "BATT-SETUP-%02X%02X%02X", mac[3], mac[4], mac[5]);
 
-    WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid, "battsetup");
     Serial.printf("[PROV] AP started: SSID=%s PASS=battsetup IP=%s\n",
         ssid, WiFi.softAPIP().toString().c_str());

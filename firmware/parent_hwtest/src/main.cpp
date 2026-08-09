@@ -4,8 +4,9 @@
  *   1: 親機                     (SD_MMC 1bit + SHT31 + PCF8563T)
  *   2: 超音波センサ              (SPH0641LU4H-1 PDMマイクのみ)
  *   3: マイクロ波ドップラーセンサカメラ (IMD-2000 + SD_MMC 1bit + PCF8563T)
+ *   4: 薄型カウンタカメラ        (XIAO ESP32S3 Sense内蔵カメラ + SD_MMC 1bit)
  *
- * 起動時にシリアルモニタで構成番号(1-3)を入力すると、その構成に対応する
+ * 起動時にシリアルモニタで構成番号(1-4)を入力すると、その構成に対応する
  * 検査のみを実行し、シリアルログにPASS/FAILの一覧を出力する。
  * 検査後は自身のAPを起動し、http://192.168.4.1/ に結果ページを表示し続ける
  * (リロードで再検査、再検査時も構成の再入力が必要)。
@@ -26,6 +27,7 @@
 #include "test_sd_dir.h"
 #include "test_pdm_mic.h"
 #include "test_imd2000.h"
+#include "test_camera.h"
 
 #define AP_PASS "hwtest1234"
 
@@ -57,6 +59,12 @@ static void runTestsForRole(BoardRole role) {
             testSdMmc();
             testSdDirList();
             testImd2000();
+            break;
+        case ROLE_COUNTER_CAMERA:
+            testSdPinIntegrity();
+            testSdMmc();
+            testSdDirList();
+            testCamera();
             break;
     }
 
@@ -101,6 +109,10 @@ void setup() {
     Serial.begin(115200);
     delay(300);
     Serial.println("\n### 基板 動作確認チェックアプリ ###\n");
+
+    // WiFi.mode()より前にWiFi.macAddress()を呼ぶとMACが0埋めで返るため、
+    // ChipInfo表示のためにここで先にモードを設定しておく。
+    WiFi.mode(WIFI_AP_STA);
 
     g_role = selectRoleFromSerial();
     Serial.printf("\n選択された構成: %s\n\n", roleName(g_role));

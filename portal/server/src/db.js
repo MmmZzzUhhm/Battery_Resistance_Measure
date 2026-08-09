@@ -7,9 +7,11 @@ const Database = require('better-sqlite3');
 
 const DATA_DIR = process.env.PORTAL_DATA_DIR || path.join(__dirname, '..', 'data');
 const FIRMWARE_DIR = path.join(DATA_DIR, 'firmware');
+const CAMERA_IMAGE_DIR = path.join(DATA_DIR, 'camera_images');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 fs.mkdirSync(FIRMWARE_DIR, { recursive: true });
+fs.mkdirSync(CAMERA_IMAGE_DIR, { recursive: true });
 
 const db = new Database(path.join(DATA_DIR, 'portal.db'));
 db.pragma('journal_mode = WAL');
@@ -64,6 +66,25 @@ CREATE TABLE IF NOT EXISTS firmware_targets (
   version TEXT NOT NULL,
   PRIMARY KEY (gateway_id, child_id)
 );
+
+CREATE TABLE IF NOT EXISTS cameras (
+  camera_id TEXT PRIMARY KEY,
+  api_key TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  last_seen_at INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS camera_captures (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  camera_id TEXT NOT NULL,
+  filename TEXT NOT NULL,
+  size INTEGER NOT NULL,
+  captured_at INTEGER,
+  received_at INTEGER NOT NULL,
+  counter_value REAL,
+  ocr_status TEXT NOT NULL DEFAULT 'pending'
+);
+CREATE INDEX IF NOT EXISTS idx_camera_captures_camera_ts ON camera_captures(camera_id, received_at);
 `);
 
-module.exports = { db, FIRMWARE_DIR };
+module.exports = { db, FIRMWARE_DIR, CAMERA_IMAGE_DIR };

@@ -1,7 +1,12 @@
-# 鉛蓄電池内部抵抗監視システム
+# 鉛蓄電池内部抵抗監視システム / 薄型カウンタカメラ
 
 複数の鉛蓄電池に取り付けた IWS7817(東京デバイセズ, I2C 交流インピーダンス方式)モジュールで
 内部抵抗・電圧を測定し、子機→親機→ポータルサーバーの3階層でデータを収集・可視化するシステム。
+
+薄型カウンタカメラ(`firmware/counter_camera`, XIAO ESP32S3 Sense)による設備カウンタの撮影・
+画像アップロードも同じポータルサーバーに集約する。ポータルは将来的に「ニッスイ八王子工場
+キュービクル監視システム」として、鉛蓄電池内部抵抗測定と薄型カウンタカメラの両機能を提供する
+(カウンタ画像のOCR読取りはRaspberry Pi上で別途稼働予定、本リポジトリのスコープ外)。
 
 設計の背景と決定事項は `docs/protocol.md` を参照。
 
@@ -13,11 +18,12 @@ firmware/
   child/                      子機ファームウェア (XIAO ESP32C6 + IWS7817 + PCF8563T)
   parent/                     親機ファームウェア (XIAO ESP32S3 + PCF8563T + microSD)
   child_hwtest/               子機基板 動作確認チェックアプリ (本番ファームとは独立)
-  parent_hwtest/              親機基板 動作確認チェックアプリ (本番ファームとは独立)
+  parent_hwtest/              親機基板 動作確認チェックアプリ (本番ファームとは独立、薄型カウンタカメラの検査項目も含む)
+  counter_camera/             薄型カウンタカメラファームウェア (XIAO ESP32S3 Sense、ONVIF簡易実装)
   _legacy_m5atoms3/           旧: M5Stack AtomS3単体版 (参考保存, 新方式とは非互換)
 portal/
-  server/                     Node.js/Express + SQLite (親機からのデータ集約・OTA配信管理)
-  client/                     React(Vite) ダッシュボード
+  server/                     Node.js/Express + SQLite (親機・薄型カウンタカメラからのデータ集約・OTA配信管理)
+  client/                     React(Vite) ダッシュボード (ニッスイ八王子工場キュービクル監視システム)
 docs/
   protocol.md                 通信プロトコル/データスキーマの単一情報源
 pc_software/                  旧: 単体デバイス向けPythonデバッグツール (新方式とは非互換)
@@ -80,6 +86,22 @@ pio run -t upload
 pio device monitor
 ```
 
+## 薄型カウンタカメラ (firmware/counter_camera)
+
+- XIAO ESP32S3 Sense内蔵カメラ + microSD(SD_MMC 1bitモード、親機と同じ配線想定)。
+- 上位システムからの撮影要求はONVIF簡易実装(WS-Discovery/認証/PTZ/動画配信は非対応)で受け付ける
+  (`/onvif/device_service` `/onvif/media_service` `/onvif/imaging_service` `/onvif/snapshot`)。
+- 照明制御はONVIF標準外の簡易HTTPエンドポイント(`/onvif/light/on` `/off`)。
+- 撮影画像はSDに保存後、ポータルサーバーの専用API(`POST /api/v1/cameras/:camera_id/images`)へアップロードする。
+- ローカルWeb UI: `http://<カメラIP>/` (設定・試し撮影・照明テスト)。初期設定はSoftAP (`COUNTERCAM-xxxxxx` / パスワード `countercam`)。
+- ONVIFエンドポイントの簡易動作確認ツール: `firmware/counter_camera/tools/onvif_test.py`
+
+```
+cd firmware/counter_camera
+pio run
+pio run -t upload
+```
+
 ## ポータルサーバー (portal/)
 
 開発 (Windows PC):
@@ -94,7 +116,7 @@ cd portal/client && npm install && npm run build   # dist/ を生成
 cd portal/server  && npm install && npm start       # dist/ を静的配信 + API (http://<Pi>:8080)
 ```
 `systemd` サービス化する場合は `npm start` を `ExecStart` に指定し、
-`portal/server/data/` (SQLite DB・ファームウェア保管) を永続ボリュームにする。
+`portal/server/data/` (SQLite DB・ファームウェア保管・薄型カウンタカメラの撮影画像保管) を永続ボリュームにする。
 
 ## 既知の環境上の注意点
 

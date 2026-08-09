@@ -111,6 +111,39 @@ bool receiveFrame(uint8_t* outBuf, uint16_t& outLen, uint16_t maxLen, unsigned l
 
 } // namespace
 
+namespace {
+
+// 受信した生バイトを内容に関わらず16進ダンプする(配線/電源側の切り分け用診断)。
+// windowMs の間、受信があるたびにタイムアウトをリセットしながら読み続ける。
+// 戻り値は受信できた総バイト数。
+uint32_t dumpRawFor(unsigned long windowMs) {
+    uint32_t count = 0;
+    unsigned long lastRx = millis();
+    Serial.print("  [IMD-2000 RAW] ");
+    while (millis() - lastRx < windowMs) {
+        if (ImdSerial.available() > 0) {
+            uint8_t b = (uint8_t)ImdSerial.read();
+            if (count < 64) {
+                char hex[4];
+                snprintf(hex, sizeof(hex), "%02X ", b);
+                Serial.print(hex);
+            }
+            count++;
+            lastRx = millis();
+        }
+    }
+    if (count == 0) {
+        Serial.println("(受信バイトなし)");
+    } else if (count > 64) {
+        Serial.printf("... (計%u バイト、先頭64バイトのみ表示)\n", (unsigned)count);
+    } else {
+        Serial.println();
+    }
+    return count;
+}
+
+} // namespace
+
 void testImd2000() {
     ImdSerial.begin(IMD2000_BAUDRATE, SERIAL_8N1, PIN_IMD2000_RX, PIN_IMD2000_TX);
     delay(100);
@@ -118,10 +151,8 @@ void testImd2000() {
     uint8_t startPayload[2] = {0x00, 0x00};
     sendFrame(IMD2000_CMD_START, startPayload, 2);
 
-    Serial.println("  [IMD-2000] StartAcquisition送信。ウォームアップ待機中(約7秒)...");
-    delay(7000);
-
-    while (ImdSerial.available()) ImdSerial.read(); // 自律push分をクリア
+    Serial.println("  [IMD-2000] StartAcquisition送信。ウォームアップ待機中(約7秒、受信バイトは下に生表示)...");
+    uint32_t warmupRxCount = dumpRawFor(7000);
 
     sendFrame(IMD2000_CMD_GETLIST, nullptr, 0);
 
@@ -137,14 +168,22 @@ void testImd2000() {
         break;
     }
 
-    char d[112];
+    // GetTargetListの応答が正しく解釈できなかった場合、残っている生バイトも見ておく
+    // (STXが0x68/0xA2以外の値になっている等、想定外の応答が来ていないかの確認)
+    uint32_t getlistRxCount = 0;
+    if (!gotTargetList) {
+        Serial.print("  [IMD-2000] GetTargetList応答を確認できず。追加で500ms生受信を確認: ");
+        getlistRxCount = dumpRawFor(500);
+    }
+
+    char d[160];
     if (gotTargetList) {
         snprintf(d, sizeof(d), "GetTargetList応答受信 (nrOfTargets=%u) TX=%d RX=%d Baud=%d",
             nrOfTargets, PIN_IMD2000_TX, PIN_IMD2000_RX, IMD2000_BAUDRATE);
         report("IMD-2000 ドップラーセンサ", true, d);
     } else {
-        snprintf(d, sizeof(d), "応答なし (TX=%d RX=%d Baud=%d) - 配線、または電源投入後7秒未満の可能性",
-            PIN_IMD2000_TX, PIN_IMD2000_RX, IMD2000_BAUDRATE);
+        snprintf(d, sizeof(d), "応答なし (TX=%d RX=%d Baud=%d) 受信バイト数: warmup=%u getlist=%u - 0なら配線/電源、非0ならプロトコル不一致の疑い",
+            PIN_IMD2000_TX, PIN_IMD2000_RX, IMD2000_BAUDRATE, (unsigned)warmupRxCount, (unsigned)getlistRxCount);
         report("IMD-2000 ドップラーセンサ", false, d);
     }
 }

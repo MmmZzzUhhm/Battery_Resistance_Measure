@@ -141,3 +141,14 @@ label { display: block; font-size: .8rem; color: var(--text-secondary); margin: 
 
 .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: .8rem; color: var(--text-secondary); }
 .legend .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
+
+.thumb { width: 96px; height: auto; border-radius: 4px; border: 1px solid var(--border); display: block; }
+
+.sidebar .nav-section-label {
+  font-size: .72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin: 16px 0 4px 10px;
+}
+.sidebar .nav-section-label:first-of-type { margin-top: 4px; }

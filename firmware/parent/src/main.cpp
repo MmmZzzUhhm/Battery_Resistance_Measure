@@ -44,6 +44,10 @@ void setup() {
     Serial.begin(115200);
     delay(50);
 
+    // configLoad()がMACアドレスからデフォルトgateway_idを生成するため、
+    // WiFiドライバをここで先に立ち上げておく (これより前だとMACが0埋めで返る)。
+    WiFi.mode(WIFI_AP_STA);
+
     configLoad();
     Serial.printf("[BOOT] gateway_id=%s\n", cfg.gateway_id);
 
@@ -54,7 +58,6 @@ void setup() {
         Serial.println("[BOOT] WARNING: SD card unavailable, history/queue/OTA disabled");
     }
 
-    WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(cfg.ap_ssid, cfg.ap_pass);
     Serial.printf("[WiFi] AP started: SSID=%s IP=%s\n", cfg.ap_ssid, WiFi.softAPIP().toString().c_str());
     if (strlen(cfg.wifi_sta_ssid) > 0) {
