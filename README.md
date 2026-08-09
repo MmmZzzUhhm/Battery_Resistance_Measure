@@ -118,6 +118,9 @@ cd portal/server  && npm install && npm start       # dist/ を静的配信 + AP
 `systemd` サービス化する場合は `npm start` を `ExecStart` に指定し、
 `portal/server/data/` (SQLite DB・ファームウェア保管・薄型カウンタカメラの撮影画像保管) を永続ボリュームにする。
 
+Raspberry Pi 4への初回セットアップ(Node.js/npmのインストールを含む詳細手順)は
+`docs/raspberry_pi_setup.md` を参照。
+
 ## 既知の環境上の注意点
 
 - **プロジェクトパスに日本語/空白を含む場合のビルド失敗**: 一部のWindows向けGCCツールチェイン
