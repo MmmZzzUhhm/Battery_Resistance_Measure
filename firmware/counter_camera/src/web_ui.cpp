@@ -54,7 +54,16 @@ button.sec{background:#757575}
 
 <h3>カメラ設定</h3>
 <label>JPEG品質 (0=高品質〜63=低品質)</label><input id="jpeg_quality" type="number" min="0" max="63">
-<label>解像度コード (5=QVGA 8=VGA 9=SVGA 10=XGA 11=HD 13=UXGA)</label><input id="frame_size" type="number" min="0" max="13">
+<label>解像度</label>
+<select id="frame_size">
+  <option value="6">QVGA (320x240)</option>
+  <option value="10">VGA (640x480)</option>
+  <option value="11">SVGA (800x600)</option>
+  <option value="12">XGA (1024x768)</option>
+  <option value="13">HD (1280x720)</option>
+  <option value="14">SXGA (1280x1024)</option>
+  <option value="15">UXGA (1600x1200)</option>
+</select>
 <label>取付向き補正 (画像回転)</label>
 <select id="image_rotation">
   <option value="0">0度 (回転なし)</option>
@@ -113,8 +122,14 @@ async function save(){
   const pass = document.getElementById('wifi_sta_pass').value;
   if (pass) body.wifi_sta_pass = pass;
   const r = await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-  showStatus(r.ok ? '保存しました (再起動が必要な場合があります)' : '保存に失敗しました', r.ok);
-  load();
+  const j = r.ok ? await r.json().catch(()=>({})) : null;
+  if (j && j.restarting) {
+    showStatus('保存しました。解像度変更を反映するため再起動します...', true);
+    setTimeout(load, 4000); // 再起動待ち
+  } else {
+    showStatus(r.ok ? '保存しました' : '保存に失敗しました', r.ok);
+    load();
+  }
 }
 async function capture(){
   showStatus('撮影中...', true);

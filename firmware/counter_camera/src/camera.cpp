@@ -11,11 +11,18 @@
  * 結果が変わる(再現性がない)ことを実機で確認した。そのためセンサーのレジスタには一切触れず、
  * 常にソフトウェア側でJPEGをデコード→上下反転(BASE_VFLIP)+取付向き補正(cfg.image_rotation)を
  * 適用→再エンコードする。BASE_VFLIP=trueであることは実機確認済み (mirrorは不要)。
+ *
+ * メモリについて: 90/270度回転は寸法の転置を伴うため、デコード用バッファと出力用バッファを
+ * 同時に確保する必要がある。UXGA(1600x1200)ではこの2バッファ合計が8MB PSRAMを超えるため、
+ * 90/270度+UXGA(またはそれ以上)の組み合わせは撮影失敗する(実機確認済み)。0/180度は
+ * 寸法が変わらないため、その場での反転(flipRowsInPlace/flipColsInPlace)で追加バッファ無しで
+ * 処理でき、UXGAでも問題ない。90/270度で高解像度が必要な場合は解像度を下げること。
  */
 #include "camera.h"
 #include "config.h"
 #include <Arduino.h>
 #include "img_converters.h"
+#include <string.h>
 
 namespace {
 
@@ -40,6 +47,36 @@ constexpr int Y2_GPIO_NUM    = 15;
 constexpr int VSYNC_GPIO_NUM = 38;
 constexpr int HREF_GPIO_NUM  = 47;
 constexpr int PCLK_GPIO_NUM  = 13;
+
+// 回転0/180度の場合、mirror・vflipの組み合わせは寸法を変えない単純な水平/垂直反転に
+// 帰着できる (90/270度のような転置を伴わない)。この場合は追加バッファを確保せず
+// その場で反転することで、UXGA等の大きな解像度でもメモリ不足を避ける。
+void flipRowsInPlace(uint8_t* buf, int w, int h) {
+    size_t rowBytes = (size_t)w * 3;
+    uint8_t* tmp = (uint8_t*)malloc(rowBytes);
+    if (!tmp) return;
+    for (int y = 0; y < h / 2; y++) {
+        uint8_t* rowA = buf + (size_t)y * rowBytes;
+        uint8_t* rowB = buf + (size_t)(h - 1 - y) * rowBytes;
+        memcpy(tmp, rowA, rowBytes);
+        memcpy(rowA, rowB, rowBytes);
+        memcpy(rowB, tmp, rowBytes);
+    }
+    free(tmp);
+}
+
+void flipColsInPlace(uint8_t* buf, int w, int h) {
+    for (int y = 0; y < h; y++) {
+        uint8_t* row = buf + (size_t)y * w * 3;
+        for (int x = 0; x < w / 2; x++) {
+            uint8_t* a = row + (size_t)x * 3;
+            uint8_t* b = row + (size_t)(w - 1 - x) * 3;
+            uint8_t t0 = a[0], t1 = a[1], t2 = a[2];
+            a[0] = b[0]; a[1] = b[1]; a[2] = b[2];
+            b[0] = t0;   b[1] = t1;   b[2] = t2;
+        }
+    }
+}
 
 // RGB888バッファを回転する (mirror/vflipは向き調整デバッグ用に残す)。
 // 戻り値はmalloc()確保 (呼び出し側でfree()必須)。失敗時nullptr。
@@ -88,15 +125,34 @@ camera_fb_t* transformJpegFrame(camera_fb_t* fb, int rotation, bool mirror, bool
     }
 
     int outW, outH;
-    uint8_t* transformed = transformRgb888(rgb, fb->width, fb->height, rotation, mirror, vflip, outW, outH);
-    free(rgb);
-    if (!transformed) return nullptr;
+    uint8_t* encodeSrc; // fmt2jpgへ渡すバッファ (freeするのは1個だけになるよう管理する)
+    bool freeAfterEncode;
+
+    if (rotation == 90 || rotation == 270) {
+        // 転置(寸法変更)を伴うため、追加バッファが必要。
+        encodeSrc = transformRgb888(rgb, fb->width, fb->height, rotation, mirror, vflip, outW, outH);
+        free(rgb);
+        if (!encodeSrc) return nullptr;
+        freeAfterEncode = true;
+    } else {
+        // 0/180度は寸法が変わらないため、水平/垂直反転のみでその場(rgbバッファ内)で処理できる。
+        // (回転180度は水平・垂直の両方反転と等価。mirror/vflipとXORで合成する。)
+        bool netHFlip = (rotation == 180) != mirror;
+        bool netVFlip = (rotation == 180) != vflip;
+        if (netVFlip) flipRowsInPlace(rgb, fb->width, fb->height);
+        if (netHFlip) flipColsInPlace(rgb, fb->width, fb->height);
+        outW = fb->width;
+        outH = fb->height;
+        encodeSrc = rgb;
+        freeAfterEncode = false; // rgbは下でfreeする
+    }
 
     uint8_t* jpgBuf = nullptr;
     size_t jpgLen = 0;
-    bool ok = fmt2jpg(transformed, (size_t)outW * outH * 3, outW, outH, PIXFORMAT_RGB888,
+    bool ok = fmt2jpg(encodeSrc, (size_t)outW * outH * 3, outW, outH, PIXFORMAT_RGB888,
                        cfg.jpeg_quality, &jpgBuf, &jpgLen);
-    free(transformed);
+    if (freeAfterEncode) free(encodeSrc);
+    else free(rgb);
     if (!ok) return nullptr;
 
     camera_fb_t* out = (camera_fb_t*)calloc(1, sizeof(camera_fb_t));

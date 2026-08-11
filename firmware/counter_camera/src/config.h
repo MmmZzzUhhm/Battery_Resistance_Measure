@@ -11,7 +11,11 @@ struct CounterCameraConfig {
     char     ap_ssid[32];         // STA未接続時/設定用のフォールバックSoftAP
     char     ap_pass[64];
     int      jpeg_quality;        // 0(高品質)〜63(低品質)
-    int      frame_size;          // framesize_t 値 (5=QVGA 8=VGA 9=SVGA 10=XGA 11=HD 13=UXGA)
+    // framesize_t 値。ライブラリのenum定義(esp32-camera/driver/include/sensor.h)実測値:
+    // 6=QVGA(320x240) 10=VGA(640x480) 11=SVGA(800x600) 12=XGA(1024x768)
+    // 13=HD(1280x720) 14=SXGA(1280x1024) 15=UXGA(1600x1200)
+    // (旧バージョンのライブラリを前提とした値と2〜3個ズレるため、ハードコードせず必ずヘッダで確認すること)
+    int      frame_size;
     int      image_rotation;      // 取付向き補正: 0/90/180/270 (度、時計回り)
 
     // 固定IP設定 (use_static_ip=false の場合はDHCPを使用)

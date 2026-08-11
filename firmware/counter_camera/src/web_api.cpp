@@ -42,6 +42,8 @@ void handleCapture() {
     JsonDocument doc;
     doc["ok"]          = true;
     doc["bytes"]       = (uint32_t)r.fb->len;
+    doc["width"]       = r.fb->width;
+    doc["height"]      = r.fb->height;
     doc["saved_path"]  = r.savedPath;
     doc["saved_to_sd"] = r.savedPath.length() > 0;
 
@@ -56,14 +58,27 @@ void handleGetConfig() {
     httpServer.send(200, "application/json", configToJson());
 }
 
+// frame_sizeはカメラ初期化(cameraBegin())時にのみ読み込まれるため、変更を反映するには再起動が必要。
 void handlePostConfig() {
     if (!httpServer.hasArg("plain")) {
         httpServer.send(400, "application/json", "{\"ok\":false,\"error\":\"no body\"}");
         return;
     }
+    int oldFrameSize = cfg.frame_size;
     bool ok = configApplyJson(httpServer.arg("plain"));
-    httpServer.send(ok ? 200 : 400, "application/json",
-        ok ? "{\"ok\":true}" : "{\"ok\":false,\"error\":\"invalid json\"}");
+    bool needsRestart = ok && cfg.frame_size != oldFrameSize;
+
+    if (!ok) {
+        httpServer.send(400, "application/json", "{\"ok\":false,\"error\":\"invalid json\"}");
+        return;
+    }
+    httpServer.send(200, "application/json",
+        needsRestart ? "{\"ok\":true,\"restarting\":true}" : "{\"ok\":true}");
+
+    if (needsRestart) {
+        delay(300); // レスポンス送信完了待ち
+        ESP.restart();
+    }
 }
 
 } // namespace

@@ -3,6 +3,7 @@
 #include <ArduinoJson.h>
 #include <WiFi.h>
 #include <time.h>
+#include "esp_camera.h" // FRAMESIZE_VGA等のシンボル定義 (数値を直接ハードコードしない)
 
 CounterCameraConfig cfg = {};
 static Preferences prefs;
@@ -25,7 +26,7 @@ void configLoad() {
     strlcpy(cfg.ap_ssid, prefs.getString("ap_ssid", defAp).c_str(), sizeof(cfg.ap_ssid));
     strlcpy(cfg.ap_pass, prefs.getString("ap_pass", "countercam").c_str(), sizeof(cfg.ap_pass));
     cfg.jpeg_quality = prefs.getInt("jpeg_q", 12);
-    cfg.frame_size   = prefs.getInt("frame_sz", 8); // 既定 VGA
+    cfg.frame_size   = prefs.getInt("frame_sz", (int)FRAMESIZE_VGA);
     cfg.image_rotation = prefs.getInt("img_rot", 0);
     cfg.use_static_ip = prefs.getBool("use_static", false);
     strlcpy(cfg.static_ip,      prefs.getString("static_ip", "").c_str(),      sizeof(cfg.static_ip));
