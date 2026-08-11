@@ -49,6 +49,8 @@ button.sec{background:#757575}
 <h3>時刻設定 (PCF8563T RTC)</h3>
 <label>NTPサーバー1</label><input id="ntp_server1" placeholder="pool.ntp.org">
 <label>NTPサーバー2</label><input id="ntp_server2" placeholder="time.google.com">
+<label>タイムゾーン (POSIX TZ形式。例: 日本は "JST-9")</label><input id="timezone_tz" placeholder="UTC0">
+<p style="color:#888;font-size:.8em;margin:4px 0">記録される日時(UTCDateTime)自体は常にUTC。ここはONVIF表示用のローカル時刻換算にのみ使用。</p>
 
 <h3>ポータル接続</h3>
 <label>ポータルURL (ニッスイ八王子工場キュービクル監視システム)</label><input id="portal_base_url" placeholder="http://raspberrypi.local:8080">
@@ -77,7 +79,7 @@ async function load(){
   const cfg = await fetch('/api/config').then(r=>r.json());
   for (const k of ['device_id','wifi_sta_ssid','portal_base_url','jpeg_quality','frame_size',
                     'static_ip','static_gateway','static_subnet','static_dns','cf_access_client_id',
-                    'ntp_server1','ntp_server2']) {
+                    'ntp_server1','ntp_server2','timezone_tz']) {
     const el = document.getElementById(k);
     if (el) el.value = cfg[k];
   }
@@ -108,6 +110,7 @@ async function save(){
     cf_access_client_id: document.getElementById('cf_access_client_id').value,
     ntp_server1: document.getElementById('ntp_server1').value,
     ntp_server2: document.getElementById('ntp_server2').value,
+    timezone_tz: document.getElementById('timezone_tz').value,
   };
   const pass = document.getElementById('wifi_sta_pass').value;
   if (pass) body.wifi_sta_pass = pass;

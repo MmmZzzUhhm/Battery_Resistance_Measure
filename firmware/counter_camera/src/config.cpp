@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <WiFi.h>
+#include <time.h>
 
 CounterCameraConfig cfg = {};
 static Preferences prefs;
@@ -36,7 +37,14 @@ void configLoad() {
     strlcpy(cfg.cf_access_client_secret, prefs.getString("cf_secret", "").c_str(), sizeof(cfg.cf_access_client_secret));
     strlcpy(cfg.ntp_server1, prefs.getString("ntp1", "pool.ntp.org").c_str(),   sizeof(cfg.ntp_server1));
     strlcpy(cfg.ntp_server2, prefs.getString("ntp2", "time.google.com").c_str(), sizeof(cfg.ntp_server2));
+    strlcpy(cfg.timezone_tz, prefs.getString("tz", "UTC0").c_str(), sizeof(cfg.timezone_tz));
     prefs.end();
+    applyTimezoneEnv();
+}
+
+void applyTimezoneEnv() {
+    setenv("TZ", strlen(cfg.timezone_tz) > 0 ? cfg.timezone_tz : "UTC0", 1);
+    tzset();
 }
 
 void configSave() {
@@ -59,6 +67,7 @@ void configSave() {
     prefs.putString("cf_secret",  cfg.cf_access_client_secret);
     prefs.putString("ntp1",       cfg.ntp_server1);
     prefs.putString("ntp2",       cfg.ntp_server2);
+    prefs.putString("tz",         cfg.timezone_tz);
     prefs.end();
 }
 
@@ -80,6 +89,7 @@ String configToJson() {
     doc["cf_access_client_secret_set"] = strlen(cfg.cf_access_client_secret) > 0;
     doc["ntp_server1"] = cfg.ntp_server1;
     doc["ntp_server2"] = cfg.ntp_server2;
+    doc["timezone_tz"] = cfg.timezone_tz;
     String out;
     serializeJson(doc, out);
     return out;
@@ -107,7 +117,9 @@ bool configApplyJson(const String& json) {
     if (doc["cf_access_client_secret"].is<const char*>()) strlcpy(cfg.cf_access_client_secret, doc["cf_access_client_secret"], sizeof(cfg.cf_access_client_secret));
     if (doc["ntp_server1"].is<const char*>()) strlcpy(cfg.ntp_server1, doc["ntp_server1"], sizeof(cfg.ntp_server1));
     if (doc["ntp_server2"].is<const char*>()) strlcpy(cfg.ntp_server2, doc["ntp_server2"], sizeof(cfg.ntp_server2));
+    if (doc["timezone_tz"].is<const char*>()) strlcpy(cfg.timezone_tz, doc["timezone_tz"], sizeof(cfg.timezone_tz));
 
     configSave();
+    applyTimezoneEnv();
     return true;
 }

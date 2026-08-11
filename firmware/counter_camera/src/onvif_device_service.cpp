@@ -71,24 +71,40 @@ String handleGetServices() {
 
 String handleGetSystemDateAndTime() {
     time_t now = time(nullptr);
-    struct tm t;
-    gmtime_r(&now, &t);
-    char buf[420];
+    struct tm utc, local;
+    gmtime_r(&now, &utc);
+    localtime_r(&now, &local); // cfg.timezone_tz (TZ環境変数) 適用済みのローカル時刻。applyTimezoneEnv()参照
+    char buf[700];
     snprintf(buf, sizeof(buf),
         "<tds:GetSystemDateAndTimeResponse><tds:SystemDateAndTime>"
         "<tt:DateTimeType>NTP</tt:DateTimeType><tt:DaylightSavings>false</tt:DaylightSavings>"
+        "<tt:TimeZone><tt:TZ>%s</tt:TZ></tt:TimeZone>"
         "<tt:UTCDateTime><tt:Time><tt:Hour>%d</tt:Hour><tt:Minute>%d</tt:Minute><tt:Second>%d</tt:Second></tt:Time>"
         "<tt:Date><tt:Year>%d</tt:Year><tt:Month>%d</tt:Month><tt:Day>%d</tt:Day></tt:Date></tt:UTCDateTime>"
+        "<tt:LocalDateTime><tt:Time><tt:Hour>%d</tt:Hour><tt:Minute>%d</tt:Minute><tt:Second>%d</tt:Second></tt:Time>"
+        "<tt:Date><tt:Year>%d</tt:Year><tt:Month>%d</tt:Month><tt:Day>%d</tt:Day></tt:Date></tt:LocalDateTime>"
         "</tds:SystemDateAndTime></tds:GetSystemDateAndTimeResponse>",
-        t.tm_hour, t.tm_min, t.tm_sec, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
+        cfg.timezone_tz,
+        utc.tm_hour, utc.tm_min, utc.tm_sec, utc.tm_year + 1900, utc.tm_mon + 1, utc.tm_mday,
+        local.tm_hour, local.tm_min, local.tm_sec, local.tm_year + 1900, local.tm_mon + 1, local.tm_mday);
     return String(buf);
 }
 
 // DateTimeType=Manualなら指定されたUTCDateTimeをシステム時刻とRTC(PCF8563T)に設定する。
 // DateTimeType=NTPなら現在設定済みのNTPサーバーへ即時再同期する。
+// TimeZone/TZが指定されていれば、DateTimeTypeに関わらずcfg.timezone_tzへ反映する
+// (ONVIFのLocalDateTime表示や、将来ローカル時刻を使う処理のため)。
 String handleSetSystemDateAndTime(const String& body) {
     String dtType;
     extractTagStringFrom(body, "DateTimeType", 0, dtType);
+
+    String tz;
+    if (extractTagStringFrom(body, "TZ", 0, tz) >= 0 && tz.length() > 0) {
+        strlcpy(cfg.timezone_tz, tz.c_str(), sizeof(cfg.timezone_tz));
+        configSave();
+        applyTimezoneEnv();
+        Serial.printf("[ONVIF] TimeZone -> %s\n", cfg.timezone_tz);
+    }
 
     if (dtType.indexOf("Manual") >= 0) {
         struct tm t = {};

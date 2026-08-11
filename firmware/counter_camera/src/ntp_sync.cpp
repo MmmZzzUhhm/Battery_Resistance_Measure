@@ -6,6 +6,9 @@
 
 bool ntpSyncNow() {
     configTime(0, 0, cfg.ntp_server1, cfg.ntp_server2);
+    // configTime()はgmtOffset=0を元に内部でTZ環境変数を上書きしてしまうため、
+    // cfg.timezone_tz(ONVIFで設定されたローカル時刻表示用TZ)を都度再適用する。
+    applyTimezoneEnv();
     struct tm ti;
     if (!getLocalTime(&ti, 5000)) {
         Serial.println("[NTP] sync failed");
