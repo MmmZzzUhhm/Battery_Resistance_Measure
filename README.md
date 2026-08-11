@@ -88,9 +88,12 @@ pio device monitor
 
 ## 薄型カウンタカメラ (firmware/counter_camera)
 
-- XIAO ESP32S3 Sense内蔵カメラ + microSD(SD_MMC 1bitモード、親機と同じ配線想定)。
+- XIAO ESP32S3 Sense内蔵カメラ + microSD(SD_MMC 1bitモード、親機と同じ配線想定) + PCF8563T(RTC)。
 - 上位システムからの撮影要求はONVIF簡易実装(WS-Discovery/認証/PTZ/動画配信は非対応)で受け付ける
   (`/onvif/device_service` `/onvif/media_service` `/onvif/imaging_service` `/onvif/snapshot`)。
+- 時刻はPCF8563T RTCを主とし、WiFi STA接続後にONVIFの`GetNTP`/`SetNTP`で設定されたNTPサーバー
+  (既定`pool.ntp.org`/`time.google.com`)に同期してRTCも補正する。`SetSystemDateAndTime`で
+  上位システムから直接日時を設定することも可能。
 - 照明制御はONVIF標準外の簡易HTTPエンドポイント(`/onvif/light/on` `/off`)。
 - 撮影画像はSDに保存後、ポータルサーバーの専用API(`POST /api/v1/cameras/:camera_id/images`)へアップロードする。
 - ローカルWeb UI: `http://<カメラIP>/` (設定・試し撮影・照明テスト)。初期設定はSoftAP (`COUNTERCAM-xxxxxx` / パスワード `countercam`)。

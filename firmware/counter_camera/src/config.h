@@ -25,6 +25,10 @@ struct CounterCameraConfig {
     // Cloudflare Access Service Token (ポータル手前のCloudflareファイアウォールを通過するため)
     char     cf_access_client_id[80];
     char     cf_access_client_secret[80];
+
+    // NTPサーバー (ONVIF GetNTP/SetNTPで上位システムから変更可能。PCF8563T RTCへ同期時刻を保持する)
+    char     ntp_server1[64];
+    char     ntp_server2[64];
 };
 
 extern CounterCameraConfig cfg;

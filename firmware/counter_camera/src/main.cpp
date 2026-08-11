@@ -1,34 +1,47 @@
 /*
  * 薄型カウンタカメラ ファームウェア
- * XIAO ESP32S3 Sense(内蔵カメラ) + microSD(SD_MMC 1bit)
+ * XIAO ESP32S3 Sense(内蔵カメラ) + microSD(SD_MMC 1bit) + PCF8563T(RTC)
  *
  * 機能:
  *   - WiFi STAで上位ネットワークに接続 (未設定/未接続時はSoftAPで設定画面を提供)
  *     固定IP設定可 (cfg.use_static_ip)。DHCP環境に依存したくない場合に使用する
  *   - ONVIF(簡易実装)で上位システムからの撮影要求・設定を受け付ける (onvif_*.cpp参照)
- *     PTZ/動画配信/WS-Discovery/認証は実装しない (H/W非対応・要件外のため)
+ *     PTZ/動画配信/WS-Discoveryは実装しない (H/W非対応・要件外のため)。
+ *     時刻管理(GetSystemDateAndTime/SetSystemDateAndTime/GetNTP/SetNTP)は実装済み。
  *   - 照明制御は独自の簡易HTTPエンドポイント (/onvif/light/on|off, ONVIF標準外)
  *   - 撮影画像はSDカード(/DCIM/)に保存し、cfg.portal_base_url へ撮影の都度アップロード
  *   - ローカルWeb UI/REST APIで状態確認・設定変更
  *
- * NOTE: この基板にはRTCが実装されていない。撮影ファイル名の時刻は
- *       WiFi STA接続後のNTP同期に依存する (storage_sd.cpp参照)。
+ * NOTE: 時刻はPCF8563T RTC(バッテリーバックアップ)を主とし、
+ *       WiFi STA接続後にNTP同期できた場合はRTCも補正する (rtc_clock.cpp, ntp_sync.cpp参照)。
+ *       起動直後、NTP同期が完了する前でもRTCの時刻をシステムクロックに反映するため、
+ *       ネットワーク未接続時でも撮影ファイル名の時刻はおおむね正しい。
  *
  * NOTE: 照明制御用GPIO(PIN_LIGHT_CTRL)は未確定のため、platformio.iniで
  *       未定義(-1)としている。実機ピン確定後にbuild_flagsへ追加すること。
  */
 #include <Arduino.h>
+#include <Wire.h>
 #include <WiFi.h>
 #include <time.h>
 #include "config.h"
 #include "camera.h"
 #include "storage_sd.h"
 #include "light_control.h"
+#include "rtc_clock.h"
+#include "ntp_sync.h"
 #include "http_server.h"
 #include "web_api.h"
 #include "web_ui.h"
 #include "onvif_routes.h"
 #include "preview_stream.h"
+
+#ifndef PIN_I2C_SDA
+#define PIN_I2C_SDA 5
+#endif
+#ifndef PIN_I2C_SCL
+#define PIN_I2C_SCL 6
+#endif
 
 namespace {
 bool g_staEverConnected = false;
@@ -44,6 +57,16 @@ void setup() {
 
     configLoad();
     Serial.printf("[BOOT] device_id=%s\n", cfg.device_id);
+
+    Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
+    if (rtcClock.begin()) {
+        int64_t rtcEpoch = rtcClock.nowEpoch();
+        if (rtcEpoch > 0) {
+            struct timeval tv = { (time_t)rtcEpoch, 0 };
+            settimeofday(&tv, nullptr);
+            Serial.printf("[RTC] system clock seeded from RTC: epoch=%lld\n", (long long)rtcEpoch);
+        }
+    }
 
     if (!cameraBegin()) {
         Serial.println("[BOOT] WARNING: Camera init failed, /api/capture will fail");
@@ -87,6 +110,6 @@ void loop() {
     if (strlen(cfg.wifi_sta_ssid) > 0 && WiFi.status() == WL_CONNECTED && !g_staEverConnected) {
         g_staEverConnected = true;
         Serial.printf("[WiFi] STA connected: %s\n", WiFi.localIP().toString().c_str());
-        configTime(0, 0, "pool.ntp.org", "time.google.com");
+        ntpSyncNow();
     }
 }

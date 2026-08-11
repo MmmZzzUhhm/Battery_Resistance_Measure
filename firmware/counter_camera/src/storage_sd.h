@@ -3,7 +3,8 @@
  *   /DCIM/img_YYYYMMDD_HHMMSS.jpg … NTP時刻同期済みの場合
  *   /DCIM/img_<連番>.jpg          … 未同期の場合 (連番はNVSに永続化)
  *
- * この基板にはRTCが実装されていないため、時刻はWiFi STA接続後のNTP同期に依存する。
+ * 時刻はPCF8563T RTCから起動時に取得され、WiFi STA接続後のNTP同期でも補正される
+ * (main.cpp, rtc_clock.cpp, ntp_sync.cpp参照)。
  */
 #pragma once
 #include <Arduino.h>

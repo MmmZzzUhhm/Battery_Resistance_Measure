@@ -7,10 +7,12 @@
 #include "web_api.h"
 #include <WiFi.h>
 #include <ArduinoJson.h>
+#include <time.h>
 #include "http_server.h"
 #include "config.h"
 #include "storage_sd.h"
 #include "capture_pipeline.h"
+#include "rtc_clock.h"
 
 namespace {
 
@@ -22,6 +24,8 @@ void handleStatus() {
     doc["wifi_ap_ip"]  = WiFi.softAPIP().toString();
     doc["sd_free_kb"]  = (uint32_t)(sdFreeBytes() / 1024);
     doc["portal_base_url_set"] = strlen(cfg.portal_base_url) > 0;
+    doc["rtc_available"] = rtcClock.isAvailable();
+    doc["now_epoch"] = (uint32_t)time(nullptr);
     String out;
     serializeJson(doc, out);
     httpServer.send(200, "application/json", out);

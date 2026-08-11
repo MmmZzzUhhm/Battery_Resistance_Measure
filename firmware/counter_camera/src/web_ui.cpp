@@ -46,6 +46,10 @@ button.sec{background:#757575}
   <label>DNSサーバー (省略可)</label><input id="static_dns" placeholder="192.168.1.1">
 </div>
 
+<h3>時刻設定 (PCF8563T RTC)</h3>
+<label>NTPサーバー1</label><input id="ntp_server1" placeholder="pool.ntp.org">
+<label>NTPサーバー2</label><input id="ntp_server2" placeholder="time.google.com">
+
 <h3>ポータル接続</h3>
 <label>ポータルURL (ニッスイ八王子工場キュービクル監視システム)</label><input id="portal_base_url" placeholder="http://raspberrypi.local:8080">
 <label>ポータルAPIキー</label><input id="portal_api_key" type="password" placeholder="(変更しない場合は空白)">
@@ -66,11 +70,14 @@ button.sec{background:#757575}
 <script>
 async function load(){
   const st = await fetch('/api/status').then(r=>r.json());
+  const now = st.now_epoch ? new Date(st.now_epoch * 1000).toLocaleString() : '不明';
   document.getElementById('meta').textContent =
-    `STA=${st.wifi_sta_ip||'(未接続)'}  AP=${st.wifi_ap_ip}  SD空き=${st.sd_free_kb}KB  稼働=${st.uptime_s}s`;
+    `STA=${st.wifi_sta_ip||'(未接続)'}  AP=${st.wifi_ap_ip}  SD空き=${st.sd_free_kb}KB  稼働=${st.uptime_s}s  ` +
+    `RTC=${st.rtc_available?'検出':'未検出'}  現在時刻=${now}`;
   const cfg = await fetch('/api/config').then(r=>r.json());
   for (const k of ['device_id','wifi_sta_ssid','portal_base_url','jpeg_quality','frame_size',
-                    'static_ip','static_gateway','static_subnet','static_dns','cf_access_client_id']) {
+                    'static_ip','static_gateway','static_subnet','static_dns','cf_access_client_id',
+                    'ntp_server1','ntp_server2']) {
     const el = document.getElementById(k);
     if (el) el.value = cfg[k];
   }
@@ -99,6 +106,8 @@ async function save(){
     static_subnet: document.getElementById('static_subnet').value,
     static_dns: document.getElementById('static_dns').value,
     cf_access_client_id: document.getElementById('cf_access_client_id').value,
+    ntp_server1: document.getElementById('ntp_server1').value,
+    ntp_server2: document.getElementById('ntp_server2').value,
   };
   const pass = document.getElementById('wifi_sta_pass').value;
   if (pass) body.wifi_sta_pass = pass;
