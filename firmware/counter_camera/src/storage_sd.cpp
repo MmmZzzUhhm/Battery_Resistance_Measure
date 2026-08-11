@@ -16,6 +16,7 @@
 namespace {
 
 const char* DCIM_DIR = "/DCIM";
+bool g_sdAvailable = false;
 
 // NTP同期済みかどうかの簡易判定 (2023-01-01以降ならOKとみなす)
 bool timeIsSynced() {
@@ -53,12 +54,18 @@ String buildFilename() {
 bool sdBegin() {
     SD_MMC.setPins(PIN_SD_CLK, PIN_SD_CMD, PIN_SD_D0);
     if (!SD_MMC.begin("/sdcard", true)) {
+        g_sdAvailable = false;
         return false;
     }
     if (!SD_MMC.exists(DCIM_DIR)) {
         SD_MMC.mkdir(DCIM_DIR);
     }
+    g_sdAvailable = true;
     return true;
+}
+
+bool sdIsAvailable() {
+    return g_sdAvailable;
 }
 
 uint64_t sdFreeBytes() {

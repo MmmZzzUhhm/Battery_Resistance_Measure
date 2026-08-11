@@ -9,7 +9,10 @@
  *     PTZ/動画配信/WS-Discoveryは実装しない (H/W非対応・要件外のため)。
  *     時刻管理(GetSystemDateAndTime/SetSystemDateAndTime/GetNTP/SetNTP)は実装済み。
  *   - 照明制御は独自の簡易HTTPエンドポイント (/onvif/light/on|off, ONVIF標準外)
- *   - 撮影画像はSDカード(/DCIM/)に保存し、cfg.portal_base_url へ撮影の都度アップロード
+ *   - 撮影画像はSDカード挿入時のみ/DCIM/へ保存 (未挿入なら保存をスキップ)。
+ *     上位システム(ポータル)への引き渡しは、ポータル側からの撮影要求(ONVIF snapshot等)に
+ *     対して撮影結果をその場でHTTPレスポンスとして返すpull型のため、本機からの能動的な
+ *     アップロードは行わない。
  *   - ローカルWeb UI/REST APIで状態確認・設定変更
  *
  * NOTE: 時刻はPCF8563T RTC(バッテリーバックアップ)を主とし、

@@ -95,7 +95,13 @@ pio device monitor
   (既定`pool.ntp.org`/`time.google.com`)に同期してRTCも補正する。`SetSystemDateAndTime`で
   上位システムから直接日時を設定することも可能。
 - 照明制御はONVIF標準外の簡易HTTPエンドポイント(`/onvif/light/on` `/off`)。
-- 撮影画像はSDに保存後、ポータルサーバーの専用API(`POST /api/v1/cameras/:camera_id/images`)へアップロードする。
+- 撮影画像はSDカードが挿入されている場合のみ`/DCIM/`へローカル保存する(未挿入なら保存をスキップ)。
+  本機からポータルへの能動的なアップロードは行わない(pull型): ポータル側がONVIFの
+  `/onvif/snapshot`(またはローカル確認用`/api/capture`)へ都度アクセスし、その場で返る
+  JPEGを受け取る方式(既存の大型PTZカメラ(ONVIF非対応、独自の`/tmp/snapshot.jpg?type=hd|sd`方式)
+  とも共通の「URLにアクセスすればスナップショットが返る」というインターフェースに揃えている)。
+  各拠点はLTE+Cloudflare Tunnel経由でしかポータルと接続できないため、Cloudflare Accessの認証は
+  拠点側のTunnelで行われ、本機のファームウェア自体はCloudflare Accessを意識しない。
 - ローカルWeb UI: `http://<カメラIP>/` (設定・試し撮影・照明テスト)。初期設定はSoftAP (`COUNTERCAM-xxxxxx` / パスワード `countercam`)。
 - ONVIFエンドポイントの簡易動作確認ツール: `firmware/counter_camera/tools/onvif_test.py`
 

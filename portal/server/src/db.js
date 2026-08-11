@@ -67,11 +67,19 @@ CREATE TABLE IF NOT EXISTS firmware_targets (
   PRIMARY KEY (gateway_id, child_id)
 );
 
+-- カメラはポータル側から都度スナップショットURLへGETしにいくpull型 (push受信は行わない)。
+-- snapshot_url はONVIF(薄型カメラ)/独自CGI(既存PTZカメラ)いずれも「GETすればJPEGが返る」
+-- 前提の共通インターフェースとして扱う。Cloudflare Access配下にある場合はcf_access_*を設定する。
 CREATE TABLE IF NOT EXISTS cameras (
   camera_id TEXT PRIMARY KEY,
-  api_key TEXT NOT NULL,
+  label TEXT,
+  snapshot_url TEXT NOT NULL,
+  cf_access_client_id TEXT,
+  cf_access_client_secret TEXT,
+  capture_interval_min INTEGER NOT NULL DEFAULT 720,
   created_at INTEGER NOT NULL,
-  last_seen_at INTEGER
+  last_capture_at INTEGER,
+  last_capture_ok INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS camera_captures (
@@ -79,12 +87,11 @@ CREATE TABLE IF NOT EXISTS camera_captures (
   camera_id TEXT NOT NULL,
   filename TEXT NOT NULL,
   size INTEGER NOT NULL,
-  captured_at INTEGER,
-  received_at INTEGER NOT NULL,
+  captured_at INTEGER NOT NULL,
   counter_value REAL,
   ocr_status TEXT NOT NULL DEFAULT 'pending'
 );
-CREATE INDEX IF NOT EXISTS idx_camera_captures_camera_ts ON camera_captures(camera_id, received_at);
+CREATE INDEX IF NOT EXISTS idx_camera_captures_camera_ts ON camera_captures(camera_id, captured_at);
 `);
 
 module.exports = { db, FIRMWARE_DIR, CAMERA_IMAGE_DIR };

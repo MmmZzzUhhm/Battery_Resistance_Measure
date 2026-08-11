@@ -52,14 +52,6 @@ button.sec{background:#757575}
 <label>タイムゾーン (POSIX TZ形式。例: 日本は "JST-9")</label><input id="timezone_tz" placeholder="UTC0">
 <p style="color:#888;font-size:.8em;margin:4px 0">記録される日時(UTCDateTime)自体は常にUTC。ここはONVIF表示用のローカル時刻換算にのみ使用。</p>
 
-<h3>ポータル接続</h3>
-<label>ポータルURL (ニッスイ八王子工場キュービクル監視システム)</label><input id="portal_base_url" placeholder="http://raspberrypi.local:8080">
-<label>ポータルAPIキー</label><input id="portal_api_key" type="password" placeholder="(変更しない場合は空白)">
-
-<h3>Cloudflare Access (ポータル手前のファイアウォール通過用)</h3>
-<label>CF-Access-Client-Id (未使用なら空白)</label><input id="cf_access_client_id" placeholder="xxxxxxxx.access">
-<label>CF-Access-Client-Secret</label><input id="cf_access_client_secret" type="password" placeholder="(変更しない場合は空白)">
-
 <h3>カメラ設定</h3>
 <label>JPEG品質 (0=高品質〜63=低品質)</label><input id="jpeg_quality" type="number" min="0" max="63">
 <label>解像度コード (5=QVGA 8=VGA 9=SVGA 10=XGA 11=HD 13=UXGA)</label><input id="frame_size" type="number" min="0" max="13">
@@ -77,8 +69,8 @@ async function load(){
     `STA=${st.wifi_sta_ip||'(未接続)'}  AP=${st.wifi_ap_ip}  SD空き=${st.sd_free_kb}KB  稼働=${st.uptime_s}s  ` +
     `RTC=${st.rtc_available?'検出':'未検出'}  現在時刻=${now}`;
   const cfg = await fetch('/api/config').then(r=>r.json());
-  for (const k of ['device_id','wifi_sta_ssid','portal_base_url','jpeg_quality','frame_size',
-                    'static_ip','static_gateway','static_subnet','static_dns','cf_access_client_id',
+  for (const k of ['device_id','wifi_sta_ssid','jpeg_quality','frame_size',
+                    'static_ip','static_gateway','static_subnet','static_dns',
                     'ntp_server1','ntp_server2','timezone_tz']) {
     const el = document.getElementById(k);
     if (el) el.value = cfg[k];
@@ -99,7 +91,6 @@ async function save(){
   const body = {
     device_id: document.getElementById('device_id').value,
     wifi_sta_ssid: document.getElementById('wifi_sta_ssid').value,
-    portal_base_url: document.getElementById('portal_base_url').value,
     jpeg_quality: parseInt(document.getElementById('jpeg_quality').value, 10),
     frame_size: parseInt(document.getElementById('frame_size').value, 10),
     use_static_ip: document.getElementById('use_static_ip').value === '1',
@@ -107,17 +98,12 @@ async function save(){
     static_gateway: document.getElementById('static_gateway').value,
     static_subnet: document.getElementById('static_subnet').value,
     static_dns: document.getElementById('static_dns').value,
-    cf_access_client_id: document.getElementById('cf_access_client_id').value,
     ntp_server1: document.getElementById('ntp_server1').value,
     ntp_server2: document.getElementById('ntp_server2').value,
     timezone_tz: document.getElementById('timezone_tz').value,
   };
   const pass = document.getElementById('wifi_sta_pass').value;
   if (pass) body.wifi_sta_pass = pass;
-  const key = document.getElementById('portal_api_key').value;
-  if (key) body.portal_api_key = key;
-  const cfSecret = document.getElementById('cf_access_client_secret').value;
-  if (cfSecret) body.cf_access_client_secret = cfSecret;
   const r = await fetch('/api/config', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
   showStatus(r.ok ? '保存しました (再起動が必要な場合があります)' : '保存に失敗しました', r.ok);
   load();
@@ -126,7 +112,7 @@ async function capture(){
   showStatus('撮影中...', true);
   const r = await fetch('/api/capture', {method:'POST'});
   const j = await r.json();
-  showStatus(j.ok ? `撮影OK: ${j.saved_path} (${j.bytes}B) アップロード=${j.upload_attempted?(j.upload_ok?'成功':'失敗'):'未設定'}` : '撮影に失敗しました', j.ok);
+  showStatus(j.ok ? `撮影OK: ${j.saved_to_sd ? j.saved_path : '(SD未挿入のため保存なし)'} (${j.bytes}B)` : '撮影に失敗しました', j.ok);
 }
 async function light(on){
   const r = await fetch(on ? '/onvif/light/on' : '/onvif/light/off');

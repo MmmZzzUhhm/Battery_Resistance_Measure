@@ -9,6 +9,7 @@ const cors = require('cors');
 const deviceApi = require('./routes/deviceApi');
 const adminApi = require('./routes/adminApi');
 const cameraApi = require('./routes/cameraApi');
+const cameraScheduler = require('./cameraScheduler');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -35,3 +36,5 @@ if (fs.existsSync(clientDist)) {
 app.listen(PORT, () => {
   console.log(`[portal] listening on http://0.0.0.0:${PORT}`);
 });
+
+cameraScheduler.start();

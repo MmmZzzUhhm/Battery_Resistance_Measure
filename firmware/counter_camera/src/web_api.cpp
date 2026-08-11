@@ -23,7 +23,7 @@ void handleStatus() {
     doc["wifi_sta_ip"] = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "";
     doc["wifi_ap_ip"]  = WiFi.softAPIP().toString();
     doc["sd_free_kb"]  = (uint32_t)(sdFreeBytes() / 1024);
-    doc["portal_base_url_set"] = strlen(cfg.portal_base_url) > 0;
+    doc["sd_present"]  = sdIsAvailable();
     doc["rtc_available"] = rtcClock.isAvailable();
     doc["now_epoch"] = (uint32_t)time(nullptr);
     String out;
@@ -33,7 +33,7 @@ void handleStatus() {
 
 // POST(またはGET) /api/capture: ローカル動作確認用の試し撮影
 void handleCapture() {
-    CaptureResult r = captureSaveAndUpload();
+    CaptureResult r = captureAndSave();
     if (!r.ok) {
         httpServer.send(500, "application/json", "{\"ok\":false,\"error\":\"capture_failed\"}");
         return;
@@ -44,9 +44,6 @@ void handleCapture() {
     doc["bytes"]       = (uint32_t)r.fb->len;
     doc["saved_path"]  = r.savedPath;
     doc["saved_to_sd"] = r.savedPath.length() > 0;
-    doc["upload_attempted"] = r.uploadAttempted;
-    doc["upload_ok"]        = r.uploadOk;
-    doc["upload_http_code"] = r.uploadHttpCode;
 
     releaseCaptureResult(r);
 

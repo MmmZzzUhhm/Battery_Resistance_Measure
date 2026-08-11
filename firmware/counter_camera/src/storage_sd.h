@@ -11,6 +11,7 @@
 #include <FS.h>
 
 bool sdBegin();
+bool sdIsAvailable(); // sdBegin()がカードを検出できたかどうか (未挿入時は撮影後の保存処理をスキップするため)
 uint64_t sdFreeBytes();
 
 // 保存に成功したら "/DCIM/xxx.jpg" 形式のパスを返す。失敗時は空文字列。

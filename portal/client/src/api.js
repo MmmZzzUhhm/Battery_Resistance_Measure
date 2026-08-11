@@ -38,6 +38,11 @@ export const api = {
       method: 'DELETE',
     }),
   cameras: () => req('/cameras'),
+  createCamera: (body) => req('/cameras', { method: 'POST', body: JSON.stringify(body) }),
+  updateCamera: (cameraId, body) =>
+    req(`/cameras/${encodeURIComponent(cameraId)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteCamera: (cameraId) => req(`/cameras/${encodeURIComponent(cameraId)}`, { method: 'DELETE' }),
+  captureCameraNow: (cameraId) => req(`/cameras/${encodeURIComponent(cameraId)}/capture`, { method: 'POST' }),
   cameraCaptures: (cameraId, params) => {
     const qs = new URLSearchParams(params).toString();
     return req(`/cameras/${encodeURIComponent(cameraId)}/captures?${qs}`);

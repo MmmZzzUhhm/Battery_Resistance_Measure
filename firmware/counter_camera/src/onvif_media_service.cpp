@@ -95,7 +95,7 @@ String onvifHandleMediaService(const String& requestBody) {
 }
 
 void onvifHandleSnapshotRoute() {
-    CaptureResult r = captureSaveAndUpload();
+    CaptureResult r = captureAndSave();
     if (!r.ok) {
         httpServer.send(500, "text/plain", "capture failed");
         return;
