@@ -20,7 +20,7 @@ CaptureResult captureAndSave() {
 
 void releaseCaptureResult(CaptureResult& result) {
     if (result.fb) {
-        esp_camera_fb_return(result.fb);
+        cameraReleaseFrame(result.fb);
         result.fb = nullptr;
     }
 }

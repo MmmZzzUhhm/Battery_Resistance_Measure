@@ -22,7 +22,7 @@ void handleStream() {
         client.printf("--%s\r\nContent-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n", boundary, (unsigned)fb->len);
         client.write(fb->buf, fb->len);
         client.print("\r\n");
-        esp_camera_fb_return(fb);
+        cameraReleaseFrame(fb);
 
         if (!client.connected()) break;
         delay(50); // フレームレートを抑制 (設置調整用途のため高フレームレートは不要)

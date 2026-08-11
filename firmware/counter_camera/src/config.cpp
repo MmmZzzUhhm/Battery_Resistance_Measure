@@ -26,6 +26,7 @@ void configLoad() {
     strlcpy(cfg.ap_pass, prefs.getString("ap_pass", "countercam").c_str(), sizeof(cfg.ap_pass));
     cfg.jpeg_quality = prefs.getInt("jpeg_q", 12);
     cfg.frame_size   = prefs.getInt("frame_sz", 8); // 既定 VGA
+    cfg.image_rotation = prefs.getInt("img_rot", 0);
     cfg.use_static_ip = prefs.getBool("use_static", false);
     strlcpy(cfg.static_ip,      prefs.getString("static_ip", "").c_str(),      sizeof(cfg.static_ip));
     strlcpy(cfg.static_gateway, prefs.getString("static_gw", "").c_str(),      sizeof(cfg.static_gateway));
@@ -52,6 +53,7 @@ void configSave() {
     prefs.putString("ap_pass",    cfg.ap_pass);
     prefs.putInt("jpeg_q",        cfg.jpeg_quality);
     prefs.putInt("frame_sz",      cfg.frame_size);
+    prefs.putInt("img_rot",       cfg.image_rotation);
     prefs.putBool("use_static",   cfg.use_static_ip);
     prefs.putString("static_ip",  cfg.static_ip);
     prefs.putString("static_gw",  cfg.static_gateway);
@@ -70,6 +72,7 @@ String configToJson() {
     doc["ap_ssid"]       = cfg.ap_ssid;
     doc["jpeg_quality"]  = cfg.jpeg_quality;
     doc["frame_size"]    = cfg.frame_size;
+    doc["image_rotation"] = cfg.image_rotation;
     doc["use_static_ip"]   = cfg.use_static_ip;
     doc["static_ip"]       = cfg.static_ip;
     doc["static_gateway"]  = cfg.static_gateway;
@@ -94,6 +97,10 @@ bool configApplyJson(const String& json) {
     if (doc["ap_pass"].is<const char*>())        strlcpy(cfg.ap_pass, doc["ap_pass"], sizeof(cfg.ap_pass));
     if (doc["jpeg_quality"].is<int>())           cfg.jpeg_quality = doc["jpeg_quality"];
     if (doc["frame_size"].is<int>())             cfg.frame_size   = doc["frame_size"];
+    if (doc["image_rotation"].is<int>()) {
+        int r = doc["image_rotation"];
+        if (r == 0 || r == 90 || r == 180 || r == 270) cfg.image_rotation = r;
+    }
     if (doc["use_static_ip"].is<bool>())         cfg.use_static_ip = doc["use_static_ip"];
     if (doc["static_ip"].is<const char*>())      strlcpy(cfg.static_ip, doc["static_ip"], sizeof(cfg.static_ip));
     if (doc["static_gateway"].is<const char*>()) strlcpy(cfg.static_gateway, doc["static_gateway"], sizeof(cfg.static_gateway));

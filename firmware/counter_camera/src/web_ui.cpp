@@ -55,6 +55,13 @@ button.sec{background:#757575}
 <h3>カメラ設定</h3>
 <label>JPEG品質 (0=高品質〜63=低品質)</label><input id="jpeg_quality" type="number" min="0" max="63">
 <label>解像度コード (5=QVGA 8=VGA 9=SVGA 10=XGA 11=HD 13=UXGA)</label><input id="frame_size" type="number" min="0" max="13">
+<label>取付向き補正 (画像回転)</label>
+<select id="image_rotation">
+  <option value="0">0度 (回転なし)</option>
+  <option value="90">90度</option>
+  <option value="180">180度 (上下逆さま取付)</option>
+  <option value="270">270度</option>
+</select>
 <button onclick="save()">保存</button>
 <button class="sec" onclick="capture()">試し撮影</button>
 <button class="sec" onclick="light(true)">照明ON</button>
@@ -69,7 +76,7 @@ async function load(){
     `STA=${st.wifi_sta_ip||'(未接続)'}  AP=${st.wifi_ap_ip}  SD空き=${st.sd_free_kb}KB  稼働=${st.uptime_s}s  ` +
     `RTC=${st.rtc_available?'検出':'未検出'}  現在時刻=${now}`;
   const cfg = await fetch('/api/config').then(r=>r.json());
-  for (const k of ['device_id','wifi_sta_ssid','jpeg_quality','frame_size',
+  for (const k of ['device_id','wifi_sta_ssid','jpeg_quality','frame_size','image_rotation',
                     'static_ip','static_gateway','static_subnet','static_dns',
                     'ntp_server1','ntp_server2','timezone_tz']) {
     const el = document.getElementById(k);
@@ -93,6 +100,7 @@ async function save(){
     wifi_sta_ssid: document.getElementById('wifi_sta_ssid').value,
     jpeg_quality: parseInt(document.getElementById('jpeg_quality').value, 10),
     frame_size: parseInt(document.getElementById('frame_size').value, 10),
+    image_rotation: parseInt(document.getElementById('image_rotation').value, 10),
     use_static_ip: document.getElementById('use_static_ip').value === '1',
     static_ip: document.getElementById('static_ip').value,
     static_gateway: document.getElementById('static_gateway').value,
