@@ -89,9 +89,11 @@ export default function CameraDetail() {
                   <td><img className="thumb" src={api.cameraCaptureImageUrl(c.id)} alt={`capture ${c.id}`} /></td>
                   <td>{new Date(c.captured_at).toLocaleString()}</td>
                   <td>
-                    {c.counter_value != null
+                    {c.ocr_status === 'done' && c.counter_value != null
                       ? <span className="num">{c.counter_value}</span>
-                      : <span className="tag">未読み取り</span>}
+                      : c.ocr_status === 'pending'
+                        ? <span className="tag">処理中...</span>
+                        : <span className="tag">認識失敗 ({c.ocr_status})</span>}
                   </td>
                 </tr>
               ))}

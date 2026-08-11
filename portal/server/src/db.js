@@ -82,14 +82,18 @@ CREATE TABLE IF NOT EXISTS cameras (
   last_capture_ok INTEGER
 );
 
+-- counter_valueはOCR認識結果の数字文字列 (例: "00065")。不明瞭な桁は"?"を含む場合があるため
+-- 数値ではなく文字列として保持する。ocr_rawはVCBカウンター認識(C:\dev\vcb_raspi_work)からの
+-- 生レスポンス(JSON文字列)で、誤認時の追跡調査用。
 CREATE TABLE IF NOT EXISTS camera_captures (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   camera_id TEXT NOT NULL,
   filename TEXT NOT NULL,
   size INTEGER NOT NULL,
   captured_at INTEGER NOT NULL,
-  counter_value REAL,
-  ocr_status TEXT NOT NULL DEFAULT 'pending'
+  counter_value TEXT,
+  ocr_status TEXT NOT NULL DEFAULT 'pending',
+  ocr_raw TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_camera_captures_camera_ts ON camera_captures(camera_id, captured_at);
 `);

@@ -130,6 +130,23 @@ cd portal/server  && npm install && npm start       # dist/ を静的配信 + AP
 Raspberry Pi 4への初回セットアップ(Node.js/npmのインストールを含む詳細手順)は
 `docs/raspberry_pi_setup.md` を参照。
 
+### カウンタ数字のAI OCR連携
+
+撮影完了後、非同期でVCBカウンター認識(別チーム開発、`app.camera_interface.recognize_counter()`)を
+呼び出し、結果を `camera_captures.counter_value`/`ocr_status`/`ocr_raw` へ書き戻す
+(`portal/server/src/services/cameraCapture.js` → `ocrClient.js` → `tools/ocr_bridge.py`)。
+OCR側のプロジェクト自体は変更せず、公開インターフェースをCLI経由で呼び出すだけの薄い連携。
+
+環境変数(未設定時はこのPC向けの既定値を使用):
+
+| 変数 | 既定値 | 用途 |
+|---|---|---|
+| `OCR_APP_DIR` | `C:\dev\vcb_raspi_work` | OCRプロジェクトのパス |
+| `OCR_PYTHON_PATH` | `<OCR_APP_DIR>\.venv_win\Scripts\python.exe` | OCR実行用Pythonインタプリタ |
+
+Raspberry Pi本番環境では、OCRプロジェクト側の`.venv`(Python 3.10以上、`requirements_raspi.txt`)の
+パスに合わせてこの2つの環境変数を設定すること。
+
 ## 既知の環境上の注意点
 
 - **プロジェクトパスに日本語/空白を含む場合のビルド失敗**: 一部のWindows向けGCCツールチェイン
