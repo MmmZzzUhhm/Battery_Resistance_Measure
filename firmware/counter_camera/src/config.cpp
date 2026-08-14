@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <time.h>
 #include "esp_camera.h" // FRAMESIZE_VGA等のシンボル定義 (数値を直接ハードコードしない)
+#include "camera.h"
 
 CounterCameraConfig cfg = {};
 static Preferences prefs;
@@ -28,6 +29,26 @@ void configLoad() {
     cfg.jpeg_quality = prefs.getInt("jpeg_q", 12);
     cfg.frame_size   = prefs.getInt("frame_sz", (int)FRAMESIZE_VGA);
     cfg.image_rotation = prefs.getInt("img_rot", 0);
+    cfg.img_brightness     = prefs.getInt("i_bri", 0);
+    cfg.img_contrast       = prefs.getInt("i_con", 0);
+    cfg.img_saturation     = prefs.getInt("i_sat", 0);
+    cfg.img_sharpness      = prefs.getInt("i_shp", 0);
+    cfg.img_special_effect = prefs.getInt("i_eff", 0);
+    cfg.img_wb_mode        = prefs.getInt("i_wbm", 0);
+    cfg.img_awb      = prefs.getBool("i_awb", true);
+    cfg.img_awb_gain = prefs.getBool("i_awbg", true);
+    cfg.img_aec      = prefs.getBool("i_aec", true);
+    cfg.img_aec2     = prefs.getBool("i_aec2", false);
+    cfg.img_ae_level  = prefs.getInt("i_ael", 0);
+    cfg.img_aec_value = prefs.getInt("i_aecv", 300);
+    cfg.img_agc      = prefs.getBool("i_agc", true);
+    cfg.img_agc_gain    = prefs.getInt("i_agcg", 0);
+    cfg.img_gainceiling = prefs.getInt("i_gc", 0);
+    cfg.img_bpc     = prefs.getBool("i_bpc", true);
+    cfg.img_wpc     = prefs.getBool("i_wpc", true);
+    cfg.img_raw_gma = prefs.getBool("i_gma", true);
+    cfg.img_lenc    = prefs.getBool("i_lenc", true);
+    cfg.img_denoise = prefs.getInt("i_dns", 0);
     cfg.use_static_ip = prefs.getBool("use_static", false);
     strlcpy(cfg.static_ip,      prefs.getString("static_ip", "").c_str(),      sizeof(cfg.static_ip));
     strlcpy(cfg.static_gateway, prefs.getString("static_gw", "").c_str(),      sizeof(cfg.static_gateway));
@@ -55,6 +76,26 @@ void configSave() {
     prefs.putInt("jpeg_q",        cfg.jpeg_quality);
     prefs.putInt("frame_sz",      cfg.frame_size);
     prefs.putInt("img_rot",       cfg.image_rotation);
+    prefs.putInt("i_bri",  cfg.img_brightness);
+    prefs.putInt("i_con",  cfg.img_contrast);
+    prefs.putInt("i_sat",  cfg.img_saturation);
+    prefs.putInt("i_shp",  cfg.img_sharpness);
+    prefs.putInt("i_eff",  cfg.img_special_effect);
+    prefs.putInt("i_wbm",  cfg.img_wb_mode);
+    prefs.putBool("i_awb",  cfg.img_awb);
+    prefs.putBool("i_awbg", cfg.img_awb_gain);
+    prefs.putBool("i_aec",  cfg.img_aec);
+    prefs.putBool("i_aec2", cfg.img_aec2);
+    prefs.putInt("i_ael",   cfg.img_ae_level);
+    prefs.putInt("i_aecv",  cfg.img_aec_value);
+    prefs.putBool("i_agc",  cfg.img_agc);
+    prefs.putInt("i_agcg",  cfg.img_agc_gain);
+    prefs.putInt("i_gc",    cfg.img_gainceiling);
+    prefs.putBool("i_bpc",  cfg.img_bpc);
+    prefs.putBool("i_wpc",  cfg.img_wpc);
+    prefs.putBool("i_gma",  cfg.img_raw_gma);
+    prefs.putBool("i_lenc", cfg.img_lenc);
+    prefs.putInt("i_dns",   cfg.img_denoise);
     prefs.putBool("use_static",   cfg.use_static_ip);
     prefs.putString("static_ip",  cfg.static_ip);
     prefs.putString("static_gw",  cfg.static_gateway);
@@ -74,6 +115,26 @@ String configToJson() {
     doc["jpeg_quality"]  = cfg.jpeg_quality;
     doc["frame_size"]    = cfg.frame_size;
     doc["image_rotation"] = cfg.image_rotation;
+    doc["img_brightness"]     = cfg.img_brightness;
+    doc["img_contrast"]       = cfg.img_contrast;
+    doc["img_saturation"]     = cfg.img_saturation;
+    doc["img_sharpness"]      = cfg.img_sharpness;
+    doc["img_special_effect"] = cfg.img_special_effect;
+    doc["img_wb_mode"]        = cfg.img_wb_mode;
+    doc["img_awb"]      = cfg.img_awb;
+    doc["img_awb_gain"] = cfg.img_awb_gain;
+    doc["img_aec"]      = cfg.img_aec;
+    doc["img_aec2"]     = cfg.img_aec2;
+    doc["img_ae_level"]  = cfg.img_ae_level;
+    doc["img_aec_value"] = cfg.img_aec_value;
+    doc["img_agc"]         = cfg.img_agc;
+    doc["img_agc_gain"]    = cfg.img_agc_gain;
+    doc["img_gainceiling"] = cfg.img_gainceiling;
+    doc["img_bpc"]     = cfg.img_bpc;
+    doc["img_wpc"]     = cfg.img_wpc;
+    doc["img_raw_gma"] = cfg.img_raw_gma;
+    doc["img_lenc"]    = cfg.img_lenc;
+    doc["img_denoise"] = cfg.img_denoise;
     doc["use_static_ip"]   = cfg.use_static_ip;
     doc["static_ip"]       = cfg.static_ip;
     doc["static_gateway"]  = cfg.static_gateway;
@@ -102,6 +163,26 @@ bool configApplyJson(const String& json) {
         int r = doc["image_rotation"];
         if (r == 0 || r == 90 || r == 180 || r == 270) cfg.image_rotation = r;
     }
+    if (doc["img_brightness"].is<int>())     cfg.img_brightness = doc["img_brightness"];
+    if (doc["img_contrast"].is<int>())       cfg.img_contrast = doc["img_contrast"];
+    if (doc["img_saturation"].is<int>())     cfg.img_saturation = doc["img_saturation"];
+    if (doc["img_sharpness"].is<int>())      cfg.img_sharpness = doc["img_sharpness"];
+    if (doc["img_special_effect"].is<int>()) cfg.img_special_effect = doc["img_special_effect"];
+    if (doc["img_wb_mode"].is<int>())        cfg.img_wb_mode = doc["img_wb_mode"];
+    if (doc["img_awb"].is<bool>())      cfg.img_awb = doc["img_awb"];
+    if (doc["img_awb_gain"].is<bool>()) cfg.img_awb_gain = doc["img_awb_gain"];
+    if (doc["img_aec"].is<bool>())      cfg.img_aec = doc["img_aec"];
+    if (doc["img_aec2"].is<bool>())     cfg.img_aec2 = doc["img_aec2"];
+    if (doc["img_ae_level"].is<int>())  cfg.img_ae_level = doc["img_ae_level"];
+    if (doc["img_aec_value"].is<int>()) cfg.img_aec_value = doc["img_aec_value"];
+    if (doc["img_agc"].is<bool>())         cfg.img_agc = doc["img_agc"];
+    if (doc["img_agc_gain"].is<int>())     cfg.img_agc_gain = doc["img_agc_gain"];
+    if (doc["img_gainceiling"].is<int>())  cfg.img_gainceiling = doc["img_gainceiling"];
+    if (doc["img_bpc"].is<bool>())     cfg.img_bpc = doc["img_bpc"];
+    if (doc["img_wpc"].is<bool>())     cfg.img_wpc = doc["img_wpc"];
+    if (doc["img_raw_gma"].is<bool>()) cfg.img_raw_gma = doc["img_raw_gma"];
+    if (doc["img_lenc"].is<bool>())    cfg.img_lenc = doc["img_lenc"];
+    if (doc["img_denoise"].is<int>())  cfg.img_denoise = doc["img_denoise"];
     if (doc["use_static_ip"].is<bool>())         cfg.use_static_ip = doc["use_static_ip"];
     if (doc["static_ip"].is<const char*>())      strlcpy(cfg.static_ip, doc["static_ip"], sizeof(cfg.static_ip));
     if (doc["static_gateway"].is<const char*>()) strlcpy(cfg.static_gateway, doc["static_gateway"], sizeof(cfg.static_gateway));
@@ -113,5 +194,6 @@ bool configApplyJson(const String& json) {
 
     configSave();
     applyTimezoneEnv();
+    cameraApplySensorSettings();
     return true;
 }

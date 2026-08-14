@@ -71,10 +71,69 @@ button.sec{background:#757575}
   <option value="180">180度 (上下逆さま取付)</option>
   <option value="270">270度</option>
 </select>
+<h3>画質詳細設定 (H/Wセンサー全項目)</h3>
+<p style="color:#888;font-size:.8em;margin:4px 0">明るさ・コントラスト・彩度・シャープネスはONVIF Imaging Serviceからも変更可能(同じ値を共有)。それ以外はこのWeb UI専用。</p>
+<label>明るさ (-2〜2)</label><input id="img_brightness" type="number" min="-2" max="2">
+<label>コントラスト (-2〜2)</label><input id="img_contrast" type="number" min="-2" max="2">
+<label>彩度 (-2〜2)</label><input id="img_saturation" type="number" min="-2" max="2">
+<label>シャープネス (-2〜2)</label><input id="img_sharpness" type="number" min="-2" max="2">
+<label>特殊効果</label>
+<select id="img_special_effect">
+  <option value="0">無効</option><option value="1">ネガ</option><option value="2">グレースケール</option>
+  <option value="3">赤</option><option value="4">緑</option><option value="5">青</option><option value="6">セピア</option>
+</select>
+<label>オートホワイトバランス(AWB)</label>
+<select id="img_awb"><option value="1">有効</option><option value="0">無効</option></select>
+<label>ホワイトバランスモード (AWB有効時のみ有効)</label>
+<select id="img_wb_mode">
+  <option value="0">自動</option><option value="1">晴天</option><option value="2">曇天</option>
+  <option value="3">オフィス</option><option value="4">家庭</option>
+</select>
+<label>AWBゲイン補正</label>
+<select id="img_awb_gain"><option value="1">有効</option><option value="0">無効</option></select>
+<label>自動露出制御(AEC)</label>
+<select id="img_aec"><option value="1">有効</option><option value="0">無効</option></select>
+<label>AEC DSPアルゴリズム(AEC2)</label>
+<select id="img_aec2"><option value="1">有効</option><option value="0">無効</option></select>
+<label>露出レベル (-2〜2、AEC有効時のみ有効)</label><input id="img_ae_level" type="number" min="-2" max="2">
+<label>手動露出値 (0〜1200、AEC無効時のみ有効)</label><input id="img_aec_value" type="number" min="0" max="1200">
+<label>自動ゲイン制御(AGC)</label>
+<select id="img_agc"><option value="1">有効</option><option value="0">無効</option></select>
+<label>手動ゲイン (0〜30、AGC無効時のみ有効)</label><input id="img_agc_gain" type="number" min="0" max="30">
+<label>ゲイン上限 (AGC有効時のみ有効)</label>
+<select id="img_gainceiling">
+  <option value="0">2x</option><option value="1">4x</option><option value="2">8x</option><option value="3">16x</option>
+  <option value="4">32x</option><option value="5">64x</option><option value="6">128x</option>
+</select>
+<label>黒点補正(BPC)</label>
+<select id="img_bpc"><option value="1">有効</option><option value="0">無効</option></select>
+<label>白点補正(WPC)</label>
+<select id="img_wpc"><option value="1">有効</option><option value="0">無効</option></select>
+<label>Rawガンマ補正</label>
+<select id="img_raw_gma"><option value="1">有効</option><option value="0">無効</option></select>
+<label>レンズ補正(LENC)</label>
+<select id="img_lenc"><option value="1">有効</option><option value="0">無効</option></select>
+<label>ノイズ除去レベル</label><input id="img_denoise" type="number" min="0" max="10">
+
 <button onclick="save()">保存</button>
 <button class="sec" onclick="capture()">試し撮影</button>
-<button class="sec" onclick="light(true)">照明ON</button>
-<button class="sec" onclick="light(false)">照明OFF</button>
+
+<label>照明LED1 明るさ</label>
+<select id="led1_level" onchange="setLight(1,this.value)">
+  <option value="0">消灯</option>
+  <option value="1">1 (最も明るい)</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4 (最も暗い)</option>
+</select>
+<label>照明LED2 明るさ</label>
+<select id="led2_level" onchange="setLight(2,this.value)">
+  <option value="0">消灯</option>
+  <option value="1">1 (最も明るい)</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4 (最も暗い)</option>
+</select>
 <div id="status"></div>
 <p style="color:#888;font-size:.8em">ONVIFエンドポイント: /onvif/device_service, /onvif/media_service, /onvif/imaging_service, /onvif/snapshot</p>
 <script>
@@ -87,12 +146,23 @@ async function load(){
   const cfg = await fetch('/api/config').then(r=>r.json());
   for (const k of ['device_id','wifi_sta_ssid','jpeg_quality','frame_size','image_rotation',
                     'static_ip','static_gateway','static_subnet','static_dns',
-                    'ntp_server1','ntp_server2','timezone_tz']) {
+                    'ntp_server1','ntp_server2','timezone_tz',
+                    'img_brightness','img_contrast','img_saturation','img_sharpness',
+                    'img_special_effect','img_wb_mode','img_ae_level','img_aec_value',
+                    'img_agc_gain','img_gainceiling','img_denoise']) {
     const el = document.getElementById(k);
     if (el) el.value = cfg[k];
   }
+  for (const k of ['img_awb','img_awb_gain','img_aec','img_aec2','img_agc',
+                    'img_bpc','img_wpc','img_raw_gma','img_lenc']) {
+    document.getElementById(k).value = cfg[k] ? '1' : '0';
+  }
   document.getElementById('use_static_ip').value = cfg.use_static_ip ? '1' : '0';
   toggleStaticIp();
+
+  const lightSt = await fetch('/onvif/light/status').then(r=>r.json());
+  document.getElementById('led1_level').value = lightSt.led1;
+  document.getElementById('led2_level').value = lightSt.led2;
 }
 function toggleStaticIp(){
   document.getElementById('staticIpFields').style.display =
@@ -118,6 +188,26 @@ async function save(){
     ntp_server1: document.getElementById('ntp_server1').value,
     ntp_server2: document.getElementById('ntp_server2').value,
     timezone_tz: document.getElementById('timezone_tz').value,
+    img_brightness: parseInt(document.getElementById('img_brightness').value, 10),
+    img_contrast: parseInt(document.getElementById('img_contrast').value, 10),
+    img_saturation: parseInt(document.getElementById('img_saturation').value, 10),
+    img_sharpness: parseInt(document.getElementById('img_sharpness').value, 10),
+    img_special_effect: parseInt(document.getElementById('img_special_effect').value, 10),
+    img_wb_mode: parseInt(document.getElementById('img_wb_mode').value, 10),
+    img_awb: document.getElementById('img_awb').value === '1',
+    img_awb_gain: document.getElementById('img_awb_gain').value === '1',
+    img_aec: document.getElementById('img_aec').value === '1',
+    img_aec2: document.getElementById('img_aec2').value === '1',
+    img_ae_level: parseInt(document.getElementById('img_ae_level').value, 10),
+    img_aec_value: parseInt(document.getElementById('img_aec_value').value, 10),
+    img_agc: document.getElementById('img_agc').value === '1',
+    img_agc_gain: parseInt(document.getElementById('img_agc_gain').value, 10),
+    img_gainceiling: parseInt(document.getElementById('img_gainceiling').value, 10),
+    img_bpc: document.getElementById('img_bpc').value === '1',
+    img_wpc: document.getElementById('img_wpc').value === '1',
+    img_raw_gma: document.getElementById('img_raw_gma').value === '1',
+    img_lenc: document.getElementById('img_lenc').value === '1',
+    img_denoise: parseInt(document.getElementById('img_denoise').value, 10),
   };
   const pass = document.getElementById('wifi_sta_pass').value;
   if (pass) body.wifi_sta_pass = pass;
@@ -137,10 +227,10 @@ async function capture(){
   const j = await r.json();
   showStatus(j.ok ? `撮影OK: ${j.saved_to_sd ? j.saved_path : '(SD未挿入のため保存なし)'} (${j.bytes}B)` : '撮影に失敗しました', j.ok);
 }
-async function light(on){
-  const r = await fetch(on ? '/onvif/light/on' : '/onvif/light/off');
+async function setLight(led, level){
+  const r = await fetch(`/onvif/light/set?led=${led}&level=${level}`);
   const j = await r.json();
-  showStatus(`照明: ${j.state}`, j.ok);
+  showStatus(j.ok ? `LED${led}: レベル${j.level}` : 'LED設定に失敗しました', j.ok);
 }
 let previewOn = false;
 function togglePreview(){

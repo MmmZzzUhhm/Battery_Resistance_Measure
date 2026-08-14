@@ -6,7 +6,7 @@
 #include "onvif_imaging_service.h"
 #include "onvif_common.h"
 #include "config.h"
-#include "esp_camera.h"
+#include "camera.h"
 
 namespace {
 
@@ -29,13 +29,9 @@ bool extractTagFloat(const String& body, const char* tagLocalName, float& out) {
     return true;
 }
 
+// cfgを唯一の正(単一の真実の情報源)とする(ローカルWeb UIとも共有)。センサーへ直接問い合わせず、
+// 変更時はconfigSave()で永続化してからcameraApplySensorSettings()で反映する。
 String settingsXml(const char* rootTag) {
-    sensor_t* s = esp_camera_sensor_get();
-    int brightness = s ? s->status.brightness : 0;
-    int contrast   = s ? s->status.contrast   : 0;
-    int saturation = s ? s->status.saturation : 0;
-    int sharpness  = s ? s->status.sharpness  : 0;
-
     char buf[500];
     snprintf(buf, sizeof(buf),
         "<timg:%s><timg:ImagingSettings>"
@@ -44,8 +40,8 @@ String settingsXml(const char* rootTag) {
         "<tt:Contrast>%.1f</tt:Contrast>"
         "<tt:Sharpness>%.1f</tt:Sharpness>"
         "</timg:ImagingSettings></timg:%s>",
-        rootTag, cameraToOnvif(brightness), cameraToOnvif(saturation),
-        cameraToOnvif(contrast), cameraToOnvif(sharpness), rootTag);
+        rootTag, cameraToOnvif(cfg.img_brightness), cameraToOnvif(cfg.img_saturation),
+        cameraToOnvif(cfg.img_contrast), cameraToOnvif(cfg.img_sharpness), rootTag);
     return String(buf);
 }
 
@@ -54,12 +50,16 @@ String handleGetImagingSettings() {
 }
 
 String handleSetImagingSettings(const String& body) {
-    sensor_t* s = esp_camera_sensor_get();
     float v;
-    if (s && extractTagFloat(body, "Brightness", v))     s->set_brightness(s, onvifToCamera(v));
-    if (s && extractTagFloat(body, "ColorSaturation", v)) s->set_saturation(s, onvifToCamera(v));
-    if (s && extractTagFloat(body, "Contrast", v))       s->set_contrast(s, onvifToCamera(v));
-    if (s && extractTagFloat(body, "Sharpness", v))      s->set_sharpness(s, onvifToCamera(v));
+    bool changed = false;
+    if (extractTagFloat(body, "Brightness", v))      { cfg.img_brightness = onvifToCamera(v); changed = true; }
+    if (extractTagFloat(body, "ColorSaturation", v))  { cfg.img_saturation = onvifToCamera(v); changed = true; }
+    if (extractTagFloat(body, "Contrast", v))        { cfg.img_contrast = onvifToCamera(v); changed = true; }
+    if (extractTagFloat(body, "Sharpness", v))       { cfg.img_sharpness = onvifToCamera(v); changed = true; }
+    if (changed) {
+        configSave();
+        cameraApplySensorSettings();
+    }
     return "<timg:SetImagingSettingsResponse/>";
 }
 

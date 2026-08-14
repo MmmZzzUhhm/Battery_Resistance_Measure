@@ -20,8 +20,8 @@
  *       起動直後、NTP同期が完了する前でもRTCの時刻をシステムクロックに反映するため、
  *       ネットワーク未接続時でも撮影ファイル名の時刻はおおむね正しい。
  *
- * NOTE: 照明制御用GPIO(PIN_LIGHT_CTRL)は未確定のため、platformio.iniで
- *       未定義(-1)としている。実機ピン確定後にbuild_flagsへ追加すること。
+ * NOTE: 照明制御はADG728(I2Cアナログデータセレクタ)経由でLED1/LED2それぞれの
+ *       電流制限抵抗(10/43/150/470Ω)を切り替える方式(light_control.cpp参照)。
  */
 #include <Arduino.h>
 #include <Wire.h>

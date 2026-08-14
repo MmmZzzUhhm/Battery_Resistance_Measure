@@ -28,6 +28,7 @@
 #include "test_pdm_mic.h"
 #include "test_imd2000.h"
 #include "test_camera.h"
+#include "test_led.h"
 
 #define AP_PASS "hwtest1234"
 
@@ -61,10 +62,12 @@ static void runTestsForRole(BoardRole role) {
             testImd2000();
             break;
         case ROLE_COUNTER_CAMERA:
+            testI2CScan();
             testSdPinIntegrity();
             testSdMmc();
             testSdDirList();
             testCamera();
+            testLedAdg728();
             break;
     }
 

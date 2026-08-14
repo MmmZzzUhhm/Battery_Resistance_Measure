@@ -80,36 +80,6 @@ void applyHwOrientation(int rotation) {
     g_hwAppliedRotation = rotation;
 }
 
-// 回転0/180度の場合、mirror・vflipの組み合わせは寸法を変えない単純な水平/垂直反転に
-// 帰着できる (90/270度のような転置を伴わない)。この場合は追加バッファを確保せず
-// その場で反転することで、UXGA等の大きな解像度でもメモリ不足を避ける。
-void flipRowsInPlace(uint8_t* buf, int w, int h) {
-    size_t rowBytes = (size_t)w * 3;
-    uint8_t* tmp = (uint8_t*)malloc(rowBytes);
-    if (!tmp) return;
-    for (int y = 0; y < h / 2; y++) {
-        uint8_t* rowA = buf + (size_t)y * rowBytes;
-        uint8_t* rowB = buf + (size_t)(h - 1 - y) * rowBytes;
-        memcpy(tmp, rowA, rowBytes);
-        memcpy(rowA, rowB, rowBytes);
-        memcpy(rowB, tmp, rowBytes);
-    }
-    free(tmp);
-}
-
-void flipColsInPlace(uint8_t* buf, int w, int h) {
-    for (int y = 0; y < h; y++) {
-        uint8_t* row = buf + (size_t)y * w * 3;
-        for (int x = 0; x < w / 2; x++) {
-            uint8_t* a = row + (size_t)x * 3;
-            uint8_t* b = row + (size_t)(w - 1 - x) * 3;
-            uint8_t t0 = a[0], t1 = a[1], t2 = a[2];
-            a[0] = b[0]; a[1] = b[1]; a[2] = b[2];
-            b[0] = t0;   b[1] = t1;   b[2] = t2;
-        }
-    }
-}
-
 // RGB888バッファを回転する (90/270度、転置を伴うケース専用)。
 // 戻り値はmalloc()確保 (呼び出し側でfree()必須)。失敗時nullptr。
 uint8_t* transformRgb888(const uint8_t* src, int w, int h, int rotation, bool mirror, bool vflip,
@@ -218,11 +188,14 @@ bool cameraBegin() {
         return false;
     }
 
-    applyHwOrientation(cfg.image_rotation);
+    // DEBUG: temporarily disabled to isolate capture_failed regression
+    // applyHwOrientation(cfg.image_rotation);
+    // cameraApplySensorSettings();
 
     // ウォームアップ (露出/AWB安定待ち)。最初の数フレームは捨てる。
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 15; i++) {
         camera_fb_t* fb = esp_camera_fb_get();
+        Serial.printf("[Camera] warmup %d: fb=%p len=%u\n", i, fb, fb ? fb->len : 0);
         if (fb) esp_camera_fb_return(fb);
         delay(150);
     }
@@ -236,7 +209,10 @@ camera_fb_t* cameraCapture() {
     applyHwOrientation(rotation);
 
     camera_fb_t* fb = esp_camera_fb_get();
-    if (!fb) return nullptr;
+    if (!fb) {
+        Serial.println("[Camera] DEBUG: esp_camera_fb_get() returned null");
+        return nullptr;
+    }
 
     if (rotation == 90 || rotation == 270) {
         camera_fb_t* transformed = transformJpegFrame(fb, rotation, BASE_MIRROR, BASE_VFLIP);
@@ -264,4 +240,30 @@ void cameraReleaseFrame(camera_fb_t* fb) {
     } else {
         esp_camera_fb_return(fb);
     }
+}
+
+void cameraApplySensorSettings() {
+    sensor_t* s = esp_camera_sensor_get();
+    if (!s) return;
+
+    s->set_brightness(s, cfg.img_brightness);
+    s->set_contrast(s, cfg.img_contrast);
+    s->set_saturation(s, cfg.img_saturation);
+    s->set_sharpness(s, cfg.img_sharpness);
+    s->set_special_effect(s, cfg.img_special_effect);
+    s->set_wb_mode(s, cfg.img_wb_mode);
+    s->set_whitebal(s, cfg.img_awb);
+    s->set_awb_gain(s, cfg.img_awb_gain);
+    s->set_exposure_ctrl(s, cfg.img_aec);
+    s->set_aec2(s, cfg.img_aec2);
+    s->set_ae_level(s, cfg.img_ae_level);
+    s->set_aec_value(s, cfg.img_aec_value);
+    s->set_gain_ctrl(s, cfg.img_agc);
+    s->set_agc_gain(s, cfg.img_agc_gain);
+    s->set_gainceiling(s, (gainceiling_t)cfg.img_gainceiling);
+    s->set_bpc(s, cfg.img_bpc);
+    s->set_wpc(s, cfg.img_wpc);
+    s->set_raw_gma(s, cfg.img_raw_gma);
+    s->set_lenc(s, cfg.img_lenc);
+    s->set_denoise(s, cfg.img_denoise);
 }

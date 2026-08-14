@@ -12,3 +12,8 @@ bool cameraBegin();
 // 失敗時はnullptr。
 camera_fb_t* cameraCapture();
 void cameraReleaseFrame(camera_fb_t* fb);
+
+// cfgのimg_*設定(明るさ・コントラスト・ホワイトバランス・露出・ゲイン等)をすべてセンサーへ
+// 反映する。cameraBegin()内で初回適用される他、Web UI/ONVIFで変更した直後にも呼ぶこと。
+// カメラ未初期化(センサー取得前)なら何もしない。
+void cameraApplySensorSettings();

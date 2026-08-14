@@ -60,7 +60,10 @@ void setup() {
     Wire.setClock(10000);
     rtcClock.begin();
 
+    iws7817PowerBegin();
+    iws7817PowerOn();
     IwsMeasurement m = readIWS7817(cfg.i2c_addr);
+    iws7817PowerOff();
     int64_t ts = rtcClock.nowEpoch();
     if (m.valid) {
         Serial.printf("[MEAS] r=%.3f mOhm v=%.4f V\n", m.r_mohm, m.v);
