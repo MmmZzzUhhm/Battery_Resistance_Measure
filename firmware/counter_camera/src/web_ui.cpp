@@ -115,11 +115,10 @@ button.sec{background:#757575}
 <select id="img_lenc"><option value="1">有効</option><option value="0">無効</option></select>
 <label>ノイズ除去レベル</label><input id="img_denoise" type="number" min="0" max="10">
 
-<button onclick="save()">保存</button>
-<button class="sec" onclick="capture()">試し撮影</button>
-
+<h3>LED照明設定</h3>
+<p style="color:#888;font-size:.8em;margin:4px 0">照明は常時点灯ではなく、「保存」後、試し撮影・プレビュー中および実運用の撮影時のみ、ここで設定した明るさで自動点灯します。</p>
 <label>照明LED1 明るさ</label>
-<select id="led1_level" onchange="setLight(1,this.value)">
+<select id="led1_level">
   <option value="0">消灯</option>
   <option value="1">1 (最も明るい)</option>
   <option value="2">2</option>
@@ -127,14 +126,20 @@ button.sec{background:#757575}
   <option value="4">4 (最も暗い)</option>
 </select>
 <label>照明LED2 明るさ</label>
-<select id="led2_level" onchange="setLight(2,this.value)">
+<select id="led2_level">
   <option value="0">消灯</option>
   <option value="1">1 (最も明るい)</option>
   <option value="2">2</option>
   <option value="3">3</option>
   <option value="4">4 (最も暗い)</option>
 </select>
+
+<button onclick="save()">保存</button>
+<button class="sec" onclick="capture()">試し撮影</button>
 <div id="status"></div>
+<div id="captureWrap" style="display:none;margin-top:8px">
+  <img id="captureImg" style="width:100%;border-radius:4px;border:1px solid #ccc" alt="試し撮影結果">
+</div>
 <p style="color:#888;font-size:.8em">ONVIFエンドポイント: /onvif/device_service, /onvif/media_service, /onvif/imaging_service, /onvif/snapshot</p>
 <script>
 async function load(){
@@ -149,7 +154,8 @@ async function load(){
                     'ntp_server1','ntp_server2','timezone_tz',
                     'img_brightness','img_contrast','img_saturation','img_sharpness',
                     'img_special_effect','img_wb_mode','img_ae_level','img_aec_value',
-                    'img_agc_gain','img_gainceiling','img_denoise']) {
+                    'img_agc_gain','img_gainceiling','img_denoise',
+                    'led1_level','led2_level']) {
     const el = document.getElementById(k);
     if (el) el.value = cfg[k];
   }
@@ -159,10 +165,6 @@ async function load(){
   }
   document.getElementById('use_static_ip').value = cfg.use_static_ip ? '1' : '0';
   toggleStaticIp();
-
-  const lightSt = await fetch('/onvif/light/status').then(r=>r.json());
-  document.getElementById('led1_level').value = lightSt.led1;
-  document.getElementById('led2_level').value = lightSt.led2;
 }
 function toggleStaticIp(){
   document.getElementById('staticIpFields').style.display =
@@ -208,6 +210,8 @@ async function save(){
     img_raw_gma: document.getElementById('img_raw_gma').value === '1',
     img_lenc: document.getElementById('img_lenc').value === '1',
     img_denoise: parseInt(document.getElementById('img_denoise').value, 10),
+    led1_level: parseInt(document.getElementById('led1_level').value, 10),
+    led2_level: parseInt(document.getElementById('led2_level').value, 10),
   };
   const pass = document.getElementById('wifi_sta_pass').value;
   if (pass) body.wifi_sta_pass = pass;
@@ -224,13 +228,17 @@ async function save(){
 async function capture(){
   showStatus('撮影中...', true);
   const r = await fetch('/api/capture', {method:'POST'});
-  const j = await r.json();
-  showStatus(j.ok ? `撮影OK: ${j.saved_to_sd ? j.saved_path : '(SD未挿入のため保存なし)'} (${j.bytes}B)` : '撮影に失敗しました', j.ok);
-}
-async function setLight(led, level){
-  const r = await fetch(`/onvif/light/set?led=${led}&level=${level}`);
-  const j = await r.json();
-  showStatus(j.ok ? `LED${led}: レベル${j.level}` : 'LED設定に失敗しました', j.ok);
+  if (!r.ok) {
+    showStatus('撮影に失敗しました', false);
+    return;
+  }
+  const savedToSd = r.headers.get('X-Saved-To-Sd') === '1';
+  const savedPath = r.headers.get('X-Saved-Path') || '';
+  const bytes = r.headers.get('X-Capture-Bytes') || '?';
+  const blob = await r.blob();
+  document.getElementById('captureImg').src = URL.createObjectURL(blob);
+  document.getElementById('captureWrap').style.display = '';
+  showStatus(`撮影OK: ${savedToSd ? savedPath : '(SD未挿入のため保存なし)'} (${bytes}B)`, true);
 }
 let previewOn = false;
 function togglePreview(){

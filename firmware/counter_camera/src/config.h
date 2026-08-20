@@ -10,6 +10,12 @@ struct CounterCameraConfig {
     char     wifi_sta_pass[64];
     char     ap_ssid[32];         // STA未接続時/設定用のフォールバックSoftAP
     char     ap_pass[64];
+
+    // 照明LED1/LED2の設定明るさ (0=消灯〜4=最も暗い、1=最も明るい)。
+    // 常時点灯はさせず、captureAndSave()中(撮影時のみ)とプレビュー配信中のみ
+    // この明るさで点灯し、それ以外は消灯する (light_control.h参照)。
+    int      led1_level;
+    int      led2_level;
     int      jpeg_quality;        // 0(高品質)〜63(低品質)
     // framesize_t 値。ライブラリのenum定義(esp32-camera/driver/include/sensor.h)実測値:
     // 6=QVGA(320x240) 10=VGA(640x480) 11=SVGA(800x600) 12=XGA(1024x768)

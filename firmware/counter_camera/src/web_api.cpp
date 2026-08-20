@@ -31,7 +31,9 @@ void handleStatus() {
     httpServer.send(200, "application/json", out);
 }
 
-// POST(またはGET) /api/capture: ローカル動作確認用の試し撮影
+// POST(またはGET) /api/capture: ローカル動作確認用の試し撮影。
+// 撮影したJPEG画像そのものをレスポンスとして返す(ブラウザでそのまま表示可能)。
+// 保存先パス等のメタ情報はレスポンスヘッダに付与する。
 void handleCapture() {
     CaptureResult r = captureAndSave();
     if (!r.ok) {
@@ -39,19 +41,14 @@ void handleCapture() {
         return;
     }
 
-    JsonDocument doc;
-    doc["ok"]          = true;
-    doc["bytes"]       = (uint32_t)r.fb->len;
-    doc["width"]       = r.fb->width;
-    doc["height"]      = r.fb->height;
-    doc["saved_path"]  = r.savedPath;
-    doc["saved_to_sd"] = r.savedPath.length() > 0;
+    httpServer.sendHeader("X-Capture-Bytes", String((uint32_t)r.fb->len));
+    httpServer.sendHeader("X-Saved-To-Sd", r.savedPath.length() > 0 ? "1" : "0");
+    httpServer.sendHeader("X-Saved-Path", r.savedPath);
+    httpServer.setContentLength(r.fb->len);
+    httpServer.send(200, "image/jpeg", "");
+    httpServer.sendContent((const char*)r.fb->buf, r.fb->len);
 
     releaseCaptureResult(r);
-
-    String out;
-    serializeJson(doc, out);
-    httpServer.send(200, "application/json", out);
 }
 
 void handleGetConfig() {

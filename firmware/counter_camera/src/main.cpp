@@ -46,8 +46,16 @@
 #define PIN_I2C_SCL 6
 #endif
 
+// ESP32はAP+STA同時動作時、APも必ずSTAと同じチャンネルで動作する制約があるため、
+// 設定済みのSTA先(自宅ルーター等)が今いる場所で圏外だと、延々と接続/スキャンを
+// 繰り返す間APが不安定になり見えなくなることがある。一定時間で接続を諦めてAP専用へ
+// 切り替えることで、設定用SoftAPを確実に使えるようにするフェイルセーフ。
+#define WIFI_STA_CONNECT_TIMEOUT_MS 20000UL
+
 namespace {
 bool g_staEverConnected = false;
+bool g_staGaveUp = false;
+unsigned long g_staConnectStartMs = 0;
 }
 
 void setup() {
@@ -95,6 +103,7 @@ void setup() {
             }
         }
         WiFi.begin(cfg.wifi_sta_ssid, cfg.wifi_sta_pass);
+        g_staConnectStartMs = millis();
         Serial.printf("[WiFi] connecting STA to %s...\n", cfg.wifi_sta_ssid);
     }
 
@@ -110,9 +119,17 @@ void setup() {
 void loop() {
     httpServer.handleClient();
 
-    if (strlen(cfg.wifi_sta_ssid) > 0 && WiFi.status() == WL_CONNECTED && !g_staEverConnected) {
-        g_staEverConnected = true;
-        Serial.printf("[WiFi] STA connected: %s\n", WiFi.localIP().toString().c_str());
-        ntpSyncNow();
+    if (strlen(cfg.wifi_sta_ssid) > 0 && !g_staEverConnected && !g_staGaveUp) {
+        if (WiFi.status() == WL_CONNECTED) {
+            g_staEverConnected = true;
+            Serial.printf("[WiFi] STA connected: %s\n", WiFi.localIP().toString().c_str());
+            ntpSyncNow();
+        } else if (millis() - g_staConnectStartMs > WIFI_STA_CONNECT_TIMEOUT_MS) {
+            g_staGaveUp = true;
+            WiFi.setAutoReconnect(false);
+            WiFi.disconnect();
+            WiFi.mode(WIFI_AP);
+            Serial.println("[WiFi] STA connect timed out, giving up and staying AP-only so SoftAP stays visible");
+        }
     }
 }

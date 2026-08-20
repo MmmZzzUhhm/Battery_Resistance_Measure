@@ -5,6 +5,7 @@
 #include <time.h>
 #include "esp_camera.h" // FRAMESIZE_VGA等のシンボル定義 (数値を直接ハードコードしない)
 #include "camera.h"
+#include "light_control.h"
 
 CounterCameraConfig cfg = {};
 static Preferences prefs;
@@ -26,6 +27,8 @@ void configLoad() {
     String defAp = String("COUNTERCAM-") + cfg.device_id;
     strlcpy(cfg.ap_ssid, prefs.getString("ap_ssid", defAp).c_str(), sizeof(cfg.ap_ssid));
     strlcpy(cfg.ap_pass, prefs.getString("ap_pass", "countercam").c_str(), sizeof(cfg.ap_pass));
+    cfg.led1_level = prefs.getInt("led1_lvl", LIGHT_LEVEL_MIN);
+    cfg.led2_level = prefs.getInt("led2_lvl", LIGHT_LEVEL_MIN);
     cfg.jpeg_quality = prefs.getInt("jpeg_q", 12);
     cfg.frame_size   = prefs.getInt("frame_sz", (int)FRAMESIZE_VGA);
     cfg.image_rotation = prefs.getInt("img_rot", 0);
@@ -73,6 +76,8 @@ void configSave() {
     prefs.putString("sta_pass",   cfg.wifi_sta_pass);
     prefs.putString("ap_ssid",    cfg.ap_ssid);
     prefs.putString("ap_pass",    cfg.ap_pass);
+    prefs.putInt("led1_lvl", cfg.led1_level);
+    prefs.putInt("led2_lvl", cfg.led2_level);
     prefs.putInt("jpeg_q",        cfg.jpeg_quality);
     prefs.putInt("frame_sz",      cfg.frame_size);
     prefs.putInt("img_rot",       cfg.image_rotation);
@@ -112,6 +117,8 @@ String configToJson() {
     doc["device_id"]     = cfg.device_id;
     doc["wifi_sta_ssid"] = cfg.wifi_sta_ssid;
     doc["ap_ssid"]       = cfg.ap_ssid;
+    doc["led1_level"]    = cfg.led1_level;
+    doc["led2_level"]    = cfg.led2_level;
     doc["jpeg_quality"]  = cfg.jpeg_quality;
     doc["frame_size"]    = cfg.frame_size;
     doc["image_rotation"] = cfg.image_rotation;
@@ -157,6 +164,14 @@ bool configApplyJson(const String& json) {
     if (doc["wifi_sta_pass"].is<const char*>())  strlcpy(cfg.wifi_sta_pass, doc["wifi_sta_pass"], sizeof(cfg.wifi_sta_pass));
     if (doc["ap_ssid"].is<const char*>())        strlcpy(cfg.ap_ssid, doc["ap_ssid"], sizeof(cfg.ap_ssid));
     if (doc["ap_pass"].is<const char*>())        strlcpy(cfg.ap_pass, doc["ap_pass"], sizeof(cfg.ap_pass));
+    if (doc["led1_level"].is<int>()) {
+        int lv = doc["led1_level"];
+        if (lv >= LIGHT_LEVEL_OFF && lv <= LIGHT_LEVEL_MAX) cfg.led1_level = lv;
+    }
+    if (doc["led2_level"].is<int>()) {
+        int lv = doc["led2_level"];
+        if (lv >= LIGHT_LEVEL_OFF && lv <= LIGHT_LEVEL_MAX) cfg.led2_level = lv;
+    }
     if (doc["jpeg_quality"].is<int>())           cfg.jpeg_quality = doc["jpeg_quality"];
     if (doc["frame_size"].is<int>())             cfg.frame_size   = doc["frame_size"];
     if (doc["image_rotation"].is<int>()) {
