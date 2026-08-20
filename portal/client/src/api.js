@@ -47,5 +47,7 @@ export const api = {
     const qs = new URLSearchParams(params).toString();
     return req(`/cameras/${encodeURIComponent(cameraId)}/captures?${qs}`);
   },
+  clearCameraCaptures: (cameraId) =>
+    req(`/cameras/${encodeURIComponent(cameraId)}/captures`, { method: 'DELETE' }),
   cameraCaptureImageUrl: (captureId) => `${BASE}/camera-captures/${encodeURIComponent(captureId)}/image`,
 };

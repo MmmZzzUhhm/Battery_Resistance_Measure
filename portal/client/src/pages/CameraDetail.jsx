@@ -35,6 +35,15 @@ export default function CameraDetail() {
     } catch (e) { setStatus({ ok: false, msg: e.message }); }
   }
 
+  async function clearCaptures() {
+    if (!window.confirm(`「${camera.label}」の撮影履歴と画像を全て削除します。元に戻せません。よろしいですか?`)) return;
+    try {
+      const r = await api.clearCameraCaptures(cameraId);
+      setStatus({ ok: true, msg: `撮影履歴を削除しました (${r.deleted}件)` });
+      loadCaptures();
+    } catch (e) { setStatus({ ok: false, msg: e.message }); }
+  }
+
   async function saveSettings() {
     await api.updateCamera(cameraId, {
       label: edits.label ?? camera.label,
@@ -83,7 +92,12 @@ export default function CameraDetail() {
       </div>
 
       <div className="card">
-        <strong>撮影履歴 (直近{captures.length}件)</strong>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <strong>撮影履歴 (直近{captures.length}件)</strong>
+          {captures.length > 0 && (
+            <button className="sec" onClick={clearCaptures}>撮影履歴をクリア</button>
+          )}
+        </div>
         {captures.length === 0 ? (
           <p>まだ撮影データがありません</p>
         ) : (

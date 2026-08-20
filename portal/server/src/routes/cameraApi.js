@@ -56,7 +56,19 @@ router.put('/cameras/:camera_id', (req, res) => {
 router.delete('/cameras/:camera_id', (req, res) => {
   db.prepare('DELETE FROM cameras WHERE camera_id = ?').run(req.params.camera_id);
   db.prepare('DELETE FROM camera_captures WHERE camera_id = ?').run(req.params.camera_id);
+  fs.rmSync(path.join(CAMERA_IMAGE_DIR, req.params.camera_id), { recursive: true, force: true });
   res.json({ ok: true });
+});
+
+// 撮影履歴のみクリア (カメラ設定自体は残す)。DB行と画像フォルダの両方を削除する。
+router.delete('/cameras/:camera_id/captures', (req, res) => {
+  const camera = db.prepare('SELECT * FROM cameras WHERE camera_id = ?').get(req.params.camera_id);
+  if (!camera) return res.status(404).json({ ok: false, error: 'not found' });
+
+  const result = db.prepare('DELETE FROM camera_captures WHERE camera_id = ?').run(req.params.camera_id);
+  fs.rmSync(path.join(CAMERA_IMAGE_DIR, req.params.camera_id), { recursive: true, force: true });
+
+  res.json({ ok: true, deleted: result.changes });
 });
 
 // 今すぐ撮影 (手動ボタン・スケジューラの両方から使う共通処理)
