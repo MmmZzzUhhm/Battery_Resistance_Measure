@@ -144,6 +144,23 @@ label { display: block; font-size: .8rem; color: var(--text-secondary); margin: 
 
 .thumb { width: 96px; height: auto; border-radius: 4px; border: 1px solid var(--border); display: block; }
 
+.lightbox-overlay {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.8);
+  display: flex; align-items: center; justify-content: center;
+  padding: 32px;
+}
+.lightbox-img {
+  max-width: 100%; max-height: 100%;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+.lightbox-close {
+  position: absolute; top: 16px; right: 24px;
+  background: transparent; border: none; color: #fff;
+  font-size: 2rem; line-height: 1; cursor: pointer; padding: 4px 10px;
+}
+
 .sidebar .nav-section-label {
   font-size: .72rem;
   color: var(--text-muted);

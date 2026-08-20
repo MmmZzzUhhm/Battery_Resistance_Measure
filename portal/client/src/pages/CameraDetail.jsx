@@ -9,6 +9,14 @@ export default function CameraDetail() {
   const [error, setError] = useState(null);
   const [status, setStatus] = useState(null);
   const [edits, setEdits] = useState({});
+  const [lightboxUrl, setLightboxUrl] = useState(null);
+
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const onKey = (e) => { if (e.key === 'Escape') setLightboxUrl(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightboxUrl]);
 
   function loadCamera() {
     api.cameras().then((list) => setCamera(list.find((c) => c.camera_id === cameraId))).catch((e) => setError(e.message));
@@ -86,7 +94,15 @@ export default function CameraDetail() {
             <tbody>
               {captures.map((c) => (
                 <tr key={c.id}>
-                  <td><img className="thumb" src={api.cameraCaptureImageUrl(c.id)} alt={`capture ${c.id}`} /></td>
+                  <td>
+                    <img
+                      className="thumb"
+                      src={api.cameraCaptureImageUrl(c.id)}
+                      alt={`capture ${c.id}`}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setLightboxUrl(api.cameraCaptureImageUrl(c.id))}
+                    />
+                  </td>
                   <td>{new Date(c.captured_at).toLocaleString()}</td>
                   <td>
                     {c.ocr_status === 'done' && c.counter_value != null
@@ -101,6 +117,13 @@ export default function CameraDetail() {
           </table>
         )}
       </div>
+
+      {lightboxUrl && (
+        <div className="lightbox-overlay" onClick={() => setLightboxUrl(null)}>
+          <img className="lightbox-img" src={lightboxUrl} alt="撮影画像(原寸大)" />
+          <button className="lightbox-close" onClick={() => setLightboxUrl(null)}>×</button>
+        </div>
+      )}
     </div>
   );
 }
